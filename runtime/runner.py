@@ -55,6 +55,7 @@ class Runner:
         self._containers: Dict[str, QWidget] = {}
         self._container_positions: Dict[str, tuple] = {}
         self._container_original_positions: Dict[str, tuple] = {}
+        self._container_parents: Dict[str, str] = {}
         self._executor: Optional[ActionExecutor] = None
         self._project_data: Dict[str, Any] = {}
     
@@ -164,6 +165,8 @@ class Runner:
                 else:
                     other_comps.append(comp_data)
         
+        self._build_container_hierarchy(container_comps)
+        
         print(f"\n--- 创建容器组件 ({len(container_comps)}个) ---")
         for comp_data in container_comps:
             comp = self._create_component_from_dict(comp_data)
@@ -172,8 +175,18 @@ class Runner:
                 container_height = comp_data.get('height', 300)
                 orig_x = comp_data.get('x', 0)
                 orig_y = comp_data.get('y', 0)
-                comp.setParent(central_widget)
-                comp.setGeometry(0, 0, container_width, container_height)
+                parent_id = comp_data.get('parent_id', '')
+                
+                if parent_id and parent_id in self._containers:
+                    parent_container = self._containers[parent_id]
+                    comp.setParent(parent_container)
+                    rel_x, rel_y = self._calculate_relative_position(comp_data, parent_id)
+                    comp.setGeometry(rel_x, rel_y, container_width, container_height)
+                    debug_log('position', f"  嵌套容器相对位置: ({rel_x}, {rel_y})")
+                else:
+                    comp.setParent(central_widget)
+                    comp.setGeometry(0, 0, container_width, container_height)
+                
                 self._components[comp_data['id']] = comp
                 self._containers[comp_data['id']] = comp
                 self._container_positions[comp_data['id']] = (0, 0)
@@ -182,7 +195,6 @@ class Runner:
                 print(f"\n[容器] {comp_data.get('name')}")
                 debug_log('position', f"  ID: {comp_data.get('id')}")
                 debug_log('position', f"  原始位置: ({orig_x}, {orig_y})")
-                debug_log('position', f"  运行时位置: (0, 0)")
                 debug_log('position', f"  大小: ({container_width}, {container_height})")
         
         print(f"\n--- 创建其他组件 ({len(other_comps)}个) ---")
@@ -208,19 +220,12 @@ class Runner:
                     parent_container = self._containers[parent_id]
                     comp.setParent(parent_container)
                     
-                    if parent_id in self._container_original_positions:
-                        orig_container_x, orig_container_y = self._container_original_positions[parent_id]
-                        
-                        # 计算相对位置：组件位置 - 容器位置 - 标题栏高度
-                        relative_x = comp_x - orig_container_x
-                        relative_y = comp_y - orig_container_y - self.TITLE_BAR_HEIGHT
-                        
-                        debug_log('position', f"  容器原始位置: ({orig_container_x}, {orig_container_y})")
-                        debug_log('position', f"  标题栏高度: {self.TITLE_BAR_HEIGHT}")
-                        debug_log('position', f"  计算相对位置: ({relative_x}, {relative_y})")
-                        debug_log('position', f"  最终位置: ({relative_x}, {relative_y})")
-                        
-                        comp.setGeometry(relative_x, relative_y, comp_w, comp_h)
+                    relative_x, relative_y = self._calculate_relative_position(comp_data, parent_id)
+                    
+                    debug_log('position', f"  计算相对位置: ({relative_x}, {relative_y})")
+                    debug_log('position', f"  最终位置: ({relative_x}, {relative_y})")
+                    
+                    comp.setGeometry(relative_x, relative_y, comp_w, comp_h)
                 else:
                     comp.setParent(central_widget)
                     debug_log('position', f"  无父容器，使用绝对位置: ({comp_x}, {comp_y})")
@@ -233,6 +238,54 @@ class Runner:
         print(f"窗口创建完成")
         print(f"{'='*50}")
         return window
+    
+    def _build_container_hierarchy(self, container_comps: list):
+        """构建容器层级关系。
+        
+        Args:
+            container_comps: 容器组件数据列表
+        """
+        self._container_parents: Dict[str, str] = {}
+        
+        for comp_data in container_comps:
+            comp_id = comp_data.get('id', '')
+            parent_id = comp_data.get('parent_id', '')
+            if parent_id:
+                self._container_parents[comp_id] = parent_id
+    
+    def _calculate_relative_position(self, comp_data: Dict[str, Any], parent_id: str) -> tuple:
+        """递归计算组件相对于父容器的位置。
+        
+        支持多层容器嵌套，每层容器都会减去标题栏高度。
+        
+        Args:
+            comp_data: 组件数据
+            parent_id: 直接父容器ID
+            
+        Returns:
+            (relative_x, relative_y) 相对位置元组
+        """
+        comp_x = comp_data.get('x', 0)
+        comp_y = comp_data.get('y', 0)
+        
+        current_parent_id = parent_id
+        total_offset_x = 0
+        total_offset_y = 0
+        
+        while current_parent_id:
+            if current_parent_id in self._container_original_positions:
+                parent_orig_x, parent_orig_y = self._container_original_positions[current_parent_id]
+                total_offset_x += parent_orig_x
+                total_offset_y += parent_orig_y + self.TITLE_BAR_HEIGHT
+                
+                current_parent_id = self._container_parents.get(current_parent_id, '')
+            else:
+                break
+        
+        relative_x = comp_x - total_offset_x
+        relative_y = comp_y - total_offset_y
+        
+        return relative_x, relative_y
     
     def _create_component_from_dict(self, comp_data: Dict[str, Any]) -> Optional[QWidget]:
         """从字典数据创建组件。

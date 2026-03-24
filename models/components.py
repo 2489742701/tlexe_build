@@ -1,4 +1,4 @@
-﻿"""组件模型模块。
+"""组件模型模块。
 
 本模块包含各种组件模型的具体实现。
 """
@@ -19,6 +19,8 @@ class ButtonModel(ComponentModel):
         self._open_mode: str = "new_window"
         self._is_default: bool = False
         self._is_cancel: bool = False
+        self._action: Dict[str, Any] = {}
+        self._action_params: Dict[str, Any] = {}
     
     @property
     def target_window_id(self) -> str:
@@ -71,6 +73,26 @@ class ButtonModel(ComponentModel):
             self.data_changed.emit()
     
     @property
+    def action(self) -> Dict[str, Any]:
+        return self._action
+    
+    @action.setter
+    def action(self, value: Dict[str, Any]):
+        if self._action != value:
+            self._action = value
+            self.data_changed.emit()
+    
+    @property
+    def action_params(self) -> Dict[str, Any]:
+        return self._action_params
+    
+    @action_params.setter
+    def action_params(self, value: Dict[str, Any]):
+        if self._action_params != value:
+            self._action_params = value
+            self.data_changed.emit()
+    
+    @property
     def has_branch(self) -> bool:
         return bool(self._target_window_id)
     
@@ -81,6 +103,8 @@ class ButtonModel(ComponentModel):
         data['open_mode'] = self._open_mode
         data['is_default'] = self._is_default
         data['is_cancel'] = self._is_cancel
+        data['action'] = self._action
+        data['action_params'] = self._action_params
         return data
     
     @classmethod
@@ -91,6 +115,8 @@ class ButtonModel(ComponentModel):
         instance._open_mode = data.get('open_mode', 'new_window')
         instance._is_default = data.get('is_default', False)
         instance._is_cancel = data.get('is_cancel', False)
+        instance._action = data.get('action', {})
+        instance._action_params = data.get('action_params', {})
         return instance
 
 

@@ -14,11 +14,32 @@ class WindowType(Enum):
 
 
 class ActionType(Enum):
-    """动作类型枚举。"""
+    """动作类型枚举。
+    
+    统一的动作类型定义，用于编辑器配置和运行时执行。
+    所有模块应使用此枚举值，确保一致性。
+    """
     NONE = "none"
+    
     CLOSE_PROGRAM = "close_program"
-    RUN_SCRIPT = "run_script"
+    CLOSE_WINDOW = "close_window"
+    
     OPEN_EVENT = "open_event"
+    OPEN_FILE = "open_file"
+    OPEN_URL = "open_url"
+    
+    RUN_SCRIPT = "run_script"
+    RUN_COMMAND = "run_command"
+    RUN_CMD = "run_cmd"
+    RUN_POWERSHELL = "run_powershell"
+    
+    SHOW_MESSAGE = "show_message"
+    SET_PROPERTY = "set_property"
+    DELAY = "delay"
+    
+    GET_SYSTEM_INFO = "get_system_info"
+    RUN_AS_ADMIN = "run_as_admin"
+    
     CUSTOM = "custom"
 
 
@@ -33,22 +54,70 @@ class ActionDefinition:
 
 DEFAULT_ACTIONS: List[ActionDefinition] = [
     ActionDefinition(
+        action_type=ActionType.NONE,
+        display_name="无动作",
+        description="不执行任何动作",
+        params={}
+    ),
+    ActionDefinition(
         action_type=ActionType.CLOSE_PROGRAM,
         display_name="关闭程序",
         description="关闭整个应用程序",
         params={}
     ),
     ActionDefinition(
-        action_type=ActionType.RUN_SCRIPT,
-        display_name="运行脚本",
-        description="打开并运行其他脚本文件",
-        params={"script_path": "", "wait": True}
+        action_type=ActionType.CLOSE_WINDOW,
+        display_name="关闭窗口",
+        description="关闭当前窗口",
+        params={}
     ),
     ActionDefinition(
         action_type=ActionType.OPEN_EVENT,
         display_name="打开事件",
         description="打开指定的事件窗口",
         params={"target_event_id": ""}
+    ),
+    ActionDefinition(
+        action_type=ActionType.OPEN_FILE,
+        display_name="打开文件",
+        description="使用系统默认程序打开文件",
+        params={"file_path": ""}
+    ),
+    ActionDefinition(
+        action_type=ActionType.OPEN_URL,
+        display_name="打开网址",
+        description="在浏览器中打开网址",
+        params={"url": ""}
+    ),
+    ActionDefinition(
+        action_type=ActionType.RUN_SCRIPT,
+        display_name="运行脚本",
+        description="运行 Python 脚本文件",
+        params={"script_path": "", "wait": False}
+    ),
+    ActionDefinition(
+        action_type=ActionType.RUN_COMMAND,
+        display_name="运行命令",
+        description="执行系统命令",
+        params={"command": "", "wait": False}
+    ),
+    ActionDefinition(
+        action_type=ActionType.SHOW_MESSAGE,
+        display_name="显示消息",
+        description="显示消息对话框",
+        params={"title": "消息", "message": "", "type": "info"}
+    ),
+    ActionDefinition(
+        action_type=ActionType.SET_PROPERTY,
+        display_name="设置属性",
+        description="设置组件属性值",
+        params={"component_id": "", "property_name": "", "value": None}
+    ),
+    ActionDefinition(
+        action_type=ActionType.DELAY,
+        display_name="延时",
+        description="延时执行（毫秒）",
+        params={"milliseconds": 1000}
     ),
     ActionDefinition(
         action_type=ActionType.CUSTOM,
