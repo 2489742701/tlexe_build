@@ -544,7 +544,10 @@ class ProjectModel(QObject):
             else:
                 comp = ComponentModel.from_dict(comp_data)
             self._components[comp.id] = comp
+            comp.data_changed.connect(lambda cid=comp.id: self.component_changed.emit(cid))
+            comp.data_changed.connect(self.mark_dirty)
         
+        self.mark_clean()
         self.project_loaded.emit()
 
     def save_to_file(self, file_path: str) -> bool:

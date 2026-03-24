@@ -125,6 +125,8 @@ class ProjectController:
         if hasattr(self.window, 'signal_manager_panel') and self.window.signal_manager_panel:
             components = [comp.to_dict() for comp in self.project_model.get_all_components()]
             self.window.signal_manager_panel.set_components(components)
+        
+        self.project_model.mark_clean()
     
     def _check_unsaved_changes(self) -> bool:
         """检查是否有未保存的修改，如果有则提示用户。
