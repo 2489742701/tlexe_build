@@ -1,0 +1,374 @@
+================================================================================
+                    傻瓜桌面开发工具 - 完整项目手册
+================================================================================
+
+【项目概述】
+一个可视化的桌面应用程序开发工具，支持 Galgame 模式的界面流转设计。
+用户可以通过拖拽组件、设置属性来快速创建桌面应用程序。
+
+================================================================================
+【项目结构】
+================================================================================
+
+测试项目-窗口编辑器/
+├── main.py                    # 程序入口，AppManager 管理欢迎页和编辑器切换
+├── models/                    # 数据模型层
+│   ├── __init__.py           # 模块导出
+│   ├── base.py               # 基础模型（ComponentModel, ProjectModel, StyleConfig, ActionConfig）
+│   ├── components.py         # 具体组件（ButtonModel, LabelModel, InputModel, ContainerModel）
+│   ├── window.py             # 窗口/事件模型（WindowModel, WindowType, ActionType）
+│   └── signals.py            # 信号定义
+├── views/                     # 视图层
+│   ├── __init__.py           # 模块导出
+│   ├── main_window.py        # 主窗口（三栏布局：逻辑树|画布|属性面板）
+│   ├── canvas.py             # 画布视图（DesignerView, ComponentGraphicsItem, DesignerScene）
+│   ├── logic_tree.py         # 逻辑树视图（Galgame模式，显示界面流转）
+│   ├── component_tree.py     # 组件树视图（旧版，保留兼容）
+│   ├── property_panel.py     # 属性面板（支持按钮分支配置）
+│   ├── welcome_page.py       # 欢迎页
+│   ├── blockly_editor.py     # Blockly编辑器
+│   ├── preferences_dialog.py # 首选项对话框
+│   └── flow_preview.py       # 流程图预览
+├── controllers/               # 控制器层
+│   ├── __init__.py
+│   └── project_controller.py # 项目控制器（协调模型和视图）
+├── runtime/                   # 运行时
+│   ├── __init__.py
+│   ├── runner.py             # 程序运行器
+│   └── action_executor.py    # 动作执行器
+├── utils/                     # 工具模块
+│   ├── __init__.py
+│   ├── settings.py           # 应用设置（AppSettings 单例）
+│   ├── undo_manager.py       # 撤销/重做管理器
+│   ├── font_utils.py         # 字体工具
+│   └── crash_log.py          # 崩溃日志
+├── templates/                 # 模板
+│   └── test_template.py
+├── devtools/                  # 开发工具
+│   ├── __init__.py
+│   ├── dev_manager.py
+│   ├── dev_console.py
+│   ├── debug_logger.py
+│   └── test_runner.py
+└── 手册                       # 本文件
+
+================================================================================
+【核心模型详解】
+================================================================================
+
+1. ComponentModel (models/base.py)
+   - 所有组件的基类
+   - 属性：
+     * id: str - 组件唯一标识（UUID前8位）
+     * type: str - 组件类型
+     * name: str - 组件名称
+     * x, y: int - 位置坐标
+     * width, height: int - 尺寸
+     * text: str - 显示文本
+     * style: StyleConfig - 样式配置
+     * action: ActionConfig - 行为配置
+     * visible, enabled: bool - 可见性和可用性
+   - 信号：
+     * data_changed, position_changed, size_changed, style_changed, action_changed
+
+2. StyleConfig (models/base.py)
+   - 组件样式配置
+   - 属性：
+     * background_color: str - 背景颜色（默认 "#f0f0f0"）
+     * text_color: str - 文本颜色（默认 "#333333"）
+     * border_color: str - 边框颜色（默认 "#999999"）
+     * border_width: int - 边框宽度（默认 1）
+     * border_radius: int - 圆角半径（默认 5）
+     * font_family: str - 字体（默认 "Microsoft YaHei"）
+     * font_size: int - 字体大小（默认 12）
+     * font_bold: bool - 是否粗体（默认 False）
+
+3. ButtonModel (models/components.py)
+   - 按钮组件，支持创建事件分支
+   - 特有属性：
+     * is_default: bool - 是否为默认按钮
+     * is_cancel: bool - 是否为取消按钮
+     * target_window_id: Optional[str] - 目标窗口ID（分支指向）
+     * branch_name: str - 分支名称
+     * action_type: ActionType - 动作类型
+     * action_params: Dict - 动作参数
+     * has_branch: bool - 是否有分支（属性，自动计算）
+   - 默认样式：蓝色背景(#4a90d9)，白色文字，圆角4
+
+4. LabelModel (models/components.py)
+   - 标签组件
+   - 特有属性：
+     * alignment: str - 对齐方式（left/center/right）
+     * word_wrap: bool - 是否自动换行
+   - 默认样式：透明背景，无边框
+
+5. InputModel (models/components.py)
+   - 输入框组件
+   - 特有属性：
+     * placeholder: str - 占位符文本
+     * is_password: bool - 是否为密码输入
+     * is_multiline: bool - 是否为多行输入
+     * max_length: int - 最大输入长度
+   - 默认样式：白色背景，灰色边框
+
+6. ContainerModel (models/components.py)
+   - 容器组件（绘制为Windows窗口样式）
+   - 特有属性：
+     * layout: str - 布局方式（none/horizontal/vertical/grid）
+     * padding: int - 内边距
+     * spacing: int - 组件间距
+   - 绘制：标题栏 + 最小化/最大化/关闭按钮
+
+7. WindowModel (models/window.py)
+   - 窗口/事件模型
+   - 类型：WindowType.MAIN（主程序）, WindowType.EVENT（事件窗口）
+   - 属性：
+     * id, name, window_type, width, height, title
+     * components: List[str] - 组件ID列表
+     * trigger_button_id: Optional[str] - 触发此窗口的按钮ID
+     * is_main, is_event: bool - 类型判断属性
+
+8. ProjectModel (models/base.py)
+   - 项目数据管理，支持多窗口
+   - 属性：
+     * name: str - 项目名称
+     * current_window_id: str - 当前编辑窗口ID
+     * main_window_id: str - 主窗口ID
+   - 方法：
+     * add_component(comp, window_id) - 添加组件到指定窗口
+     * remove_component(comp_id) - 移除组件
+     * add_window(window, trigger_button_id) - 添加窗口
+     * remove_window(window_id) - 移除窗口（主窗口不可移除）
+     * create_event_for_button(button_id, event_name) - 为按钮创建事件
+     * get_components_for_window(window_id) - 获取窗口的所有组件
+     * to_dict() / from_dict() - 序列化
+     * save_to_file() / load_from_file() - 文件操作
+
+================================================================================
+【Galgame 模式详解】
+================================================================================
+
+设计理念：
+- 主程序作为入口窗口（自动创建）
+- 每个按钮可以创建分支，指向新的事件窗口
+- 事件窗口可以继续包含按钮和分支
+- 形成树状的界面流转结构
+
+逻辑树结构示例：
+┌─ 🏠 主程序 (主程序)
+│  ├── 📝 标签: "欢迎"
+│  ├── 🔘 开始 → 开始事件
+│  │   └─ 📄 开始事件 (事件)
+│  │       ├── ✏️ 输入框
+│  │       └── 🔘 提交 → 提交事件
+│  └── 🔘 退出 (关闭程序)
+
+实现文件：
+- views/logic_tree.py: LogicTreeView 类
+  * 显示程序逻辑流转
+  * 右键菜单：创建事件、删除、重命名
+  * 双击重命名
+  * 点击跳转到对应窗口
+
+================================================================================
+【动作类型】
+================================================================================
+
+ActionType 枚举（models/window.py）：
+- NONE: 无动作
+- CLOSE_PROGRAM: 关闭程序
+- RUN_SCRIPT: 运行脚本（参数：script_path, wait）
+- OPEN_EVENT: 打开事件窗口（参数：target_event_id）
+- CUSTOM: 自定义动作
+
+DEFAULT_ACTIONS 列表：
+- 关闭程序：关闭整个应用程序
+- 运行脚本：打开并运行其他脚本文件
+- 打开事件：打开指定的事件窗口
+- 自定义动作：执行自定义的动作链
+
+================================================================================
+【视图组件详解】
+================================================================================
+
+1. MainWindow (views/main_window.py)
+   - 三栏布局：逻辑树(280px) | 画布(840px) | 属性面板(280px)
+   - 菜单：文件、编辑、组件、运行、视图、设置、帮助
+   - 工具栏：新建、打开、保存、添加组件、运行
+   - 状态栏：状态消息、缩放控制（放大/缩小/重置）
+   - 信号：
+     * new_project, open_project, save_project, save_project_as
+     * add_component, delete_component, rename_component
+     * window_selected, create_event_requested, delete_window, rename_window
+     * component_selected, property_changed, action_config_requested
+
+2. DesignerView (views/canvas.py)
+   - 画布视图，支持：
+     * 滚轮直接缩放（无需修饰键）
+     * 中键拖拽平移
+     * 组件拖拽移动、调整大小
+     * 桌面模拟（1920x1080 默认大小）
+   - 缩放范围：10% - 500%
+   - 信号：zoom_changed
+
+3. ComponentGraphicsItem (views/canvas.py)
+   - 画布上的组件图形项
+   - 支持：拖拽移动、选中高亮、8个调整手柄
+   - 容器组件绘制为Windows窗口样式（标题栏+按钮）
+   - 信号：moved, selected, resized
+
+4. LogicTreeView (views/logic_tree.py)
+   - 显示程序逻辑流转
+   - 节点类型：窗口节点、组件节点
+   - 图标：
+     * 🏠 主程序窗口
+     * 📄 事件窗口
+     * 🔘 按钮
+     * 📝 标签
+     * ✏️ 输入框
+     * 📦 容器
+   - 右键菜单功能
+   - 信号：window_selected, component_selected, create_event_requested
+
+5. PropertyPanel (views/property_panel.py)
+   - 显示选中组件的属性
+   - 分组：基础属性、样式属性、类型特定属性
+   - 按钮特有：分支配置、动作选择
+   - 信号：property_changed, action_config_requested, create_event_requested, goto_event_requested
+
+================================================================================
+【控制器】
+================================================================================
+
+ProjectController (controllers/project_controller.py)
+- 协调模型和视图
+- 主要职责：
+  * 连接所有信号
+  * 处理用户操作
+  * 管理窗口切换
+  * 创建事件分支
+  * 运行项目
+
+关键方法：
+- _on_add_component: 添加组件到当前窗口
+- _on_create_event_requested: 为按钮创建事件窗口
+- _switch_to_window: 切换到指定窗口
+- _create_graphics_item: 创建组件图形项
+- _on_run_project: 运行项目
+
+================================================================================
+【运行时】
+================================================================================
+
+runner.py:
+- 加载 .fool 项目文件
+- 创建实际窗口并运行
+- 处理按钮点击事件
+- 执行动作（关闭程序、运行脚本等）
+
+================================================================================
+【文件格式】
+================================================================================
+
+项目文件 (.fool) JSON格式：
+{
+  "name": "项目名称",
+  "main_window_id": "主窗口ID",
+  "current_window_id": "当前窗口ID",
+  "windows": [
+    {
+      "id": "窗口ID",
+      "name": "窗口名称",
+      "window_type": "main|event",
+      "width": 800,
+      "height": 600,
+      "title": "窗口标题",
+      "components": ["组件ID列表"],
+      "trigger_button_id": "触发按钮ID"
+    }
+  ],
+  "components": [
+    {
+      "id": "组件ID",
+      "comp_type": "button|label|input|container",
+      "name": "组件名称",
+      "x": 100, "y": 100,
+      "width": 100, "height": 36,
+      "text": "显示文本",
+      "style": {...},
+      "target_window_id": "目标窗口ID（按钮专用）",
+      "branch_name": "分支名称（按钮专用）",
+      ...
+    }
+  ]
+}
+
+================================================================================
+【快捷键】
+================================================================================
+
+- Ctrl+N: 新建项目
+- Ctrl+O: 打开项目
+- Ctrl+S: 保存项目
+- Ctrl+Shift+S: 另存为
+- Delete: 删除选中组件
+- F5: 运行项目
+- Ctrl++: 放大画布
+- Ctrl+-: 缩小画布
+- Ctrl+0: 重置缩放
+- 滚轮: 缩放画布（直接使用，无需修饰键）
+- 中键拖拽: 平移画布
+
+================================================================================
+【已知问题和注意事项】
+================================================================================
+
+1. 文件编码问题：
+   - 所有Python文件必须使用UTF-8编码，无BOM
+   - 如果出现SyntaxError: invalid non-printable character，检查文件开头是否有BOM
+
+2. 布局警告：
+   - QLayout警告可以忽略，不影响功能
+
+3. 容器组件：
+   - 绘制为Windows窗口样式，有标题栏和按钮
+   - 标题栏高度28px
+
+4. 逻辑树：
+   - 主窗口不可删除
+   - 事件窗口删除时会同时删除其中的组件
+
+5. 按钮分支：
+   - 每个按钮只能有一个分支
+   - 创建分支后自动设置 target_window_id 和 branch_name
+
+================================================================================
+【开发命令】
+================================================================================
+
+启动程序：
+  python main.py
+
+检查语法：
+  python -m py_compile <文件路径>
+
+修复BOM字符（PowerShell）：
+  Get-ChildItem -Recurse -Include *.py | ForEach-Object { 
+    $content = [System.IO.File]::ReadAllText($_.FullName)
+    if ($content.StartsWith([char]0xFEFF)) {
+      $content = $content.Substring(1)
+      [System.IO.File]::WriteAllText($_.FullName, $content, [System.Text.Encoding]::UTF8)
+    }
+  }
+
+================================================================================
+【版本历史】
+================================================================================
+
+v1.0 - 初始版本
+- 基础组件：按钮、标签、输入框、容器
+- 属性面板：样式编辑
+- Galgame模式：逻辑树、按钮分支、事件窗口
+- 运行时：项目运行器
+
+================================================================================

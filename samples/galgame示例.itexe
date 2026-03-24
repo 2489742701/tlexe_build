@@ -1,0 +1,428 @@
+{
+  "name": "Galgame示例项目",
+  "windows": [
+    {
+      "id": "main001",
+      "name": "主界面",
+      "window_type": "main",
+      "width": 800,
+      "height": 600,
+      "title": "主界面",
+      "components": [
+        "cont001",
+        "lbl001",
+        "btn001",
+        "btn002"
+      ],
+      "trigger_button_id": null
+    },
+    {
+      "id": "event001",
+      "name": "开始游戏",
+      "window_type": "event",
+      "width": 800,
+      "height": 600,
+      "title": "开始游戏",
+      "components": [
+        "cont002",
+        "lbl002",
+        "btn003"
+      ],
+      "trigger_button_id": null
+    },
+    {
+      "id": "event002",
+      "name": "设置",
+      "window_type": "event",
+      "width": 600,
+      "height": 400,
+      "title": "设置",
+      "components": [
+        "cont003",
+        "lbl003",
+        "inp001",
+        "btn004"
+      ],
+      "trigger_button_id": null
+    }
+  ],
+  "components": [
+    {
+      "id": "cont001",
+      "comp_type": "container",
+      "name": "主容器",
+      "x": 150,
+      "y": 100,
+      "width": 500,
+      "height": 400,
+      "text": "游戏主菜单",
+      "parent_id": "",
+      "style": {
+        "background_color": "#f5f5f5",
+        "text_color": "#333333",
+        "border_color": "#999999",
+        "border_width": 1,
+        "border_radius": 5,
+        "font_family": "Microsoft YaHei",
+        "font_size": 12,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "children": [],
+      "position_mode": "center",
+      "layout": "none",
+      "padding": 10,
+      "spacing": 5
+    },
+    {
+      "id": "lbl001",
+      "comp_type": "label",
+      "name": "标题",
+      "x": 300,
+      "y": 158,
+      "width": 301,
+      "height": 40,
+      "text": "欢迎来到Galgame示例",
+      "parent_id": "",
+      "style": {
+        "background_color": "transparent",
+        "text_color": "#333333",
+        "border_color": "#999999",
+        "border_width": 0,
+        "border_radius": 0,
+        "font_family": "Microsoft YaHei",
+        "font_size": 18,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "alignment": "center",
+      "word_wrap": false
+    },
+    {
+      "id": "btn001",
+      "comp_type": "button",
+      "name": "开始按钮",
+      "x": 300,
+      "y": 228,
+      "width": 200,
+      "height": 50,
+      "text": "开始游戏",
+      "parent_id": "cont001",
+      "style": {
+        "background_color": "#4CAF50",
+        "text_color": "#ffffff",
+        "border_color": "#45a049",
+        "border_width": 1,
+        "border_radius": 8,
+        "font_family": "Microsoft YaHei",
+        "font_size": 14,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "target_window_id": "event001",
+      "branch_name": "开始游戏",
+      "open_mode": "new_window",
+      "is_default": false,
+      "is_cancel": false
+    },
+    {
+      "id": "btn002",
+      "comp_type": "button",
+      "name": "设置按钮",
+      "x": 300,
+      "y": 308,
+      "width": 200,
+      "height": 50,
+      "text": "设置",
+      "parent_id": "cont001",
+      "style": {
+        "background_color": "#2196F3",
+        "text_color": "#ffffff",
+        "border_color": "#1976D2",
+        "border_width": 1,
+        "border_radius": 8,
+        "font_family": "Microsoft YaHei",
+        "font_size": 14,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "target_window_id": "event002",
+      "branch_name": "设置",
+      "open_mode": "new_window",
+      "is_default": false,
+      "is_cancel": false
+    },
+    {
+      "id": "cont002",
+      "comp_type": "container",
+      "name": "游戏容器",
+      "x": 150,
+      "y": 100,
+      "width": 500,
+      "height": 400,
+      "text": "游戏进行中",
+      "parent_id": "",
+      "style": {
+        "background_color": "#f5f5f5",
+        "text_color": "#333333",
+        "border_color": "#999999",
+        "border_width": 1,
+        "border_radius": 5,
+        "font_family": "Microsoft YaHei",
+        "font_size": 12,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "children": [],
+      "position_mode": "center",
+      "layout": "none",
+      "padding": 10,
+      "spacing": 5
+    },
+    {
+      "id": "lbl002",
+      "comp_type": "label",
+      "name": "游戏内容",
+      "x": 200,
+      "y": 228,
+      "width": 300,
+      "height": 100,
+      "text": "这里是游戏内容区域\n点击返回按钮回到主菜单",
+      "parent_id": "cont002",
+      "style": {
+        "background_color": "transparent",
+        "text_color": "#666666",
+        "border_color": "#999999",
+        "border_width": 0,
+        "border_radius": 0,
+        "font_family": "Microsoft YaHei",
+        "font_size": 14,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "alignment": "center",
+      "word_wrap": true
+    },
+    {
+      "id": "btn003",
+      "comp_type": "button",
+      "name": "返回按钮",
+      "x": 300,
+      "y": 378,
+      "width": 200,
+      "height": 50,
+      "text": "返回主菜单",
+      "parent_id": "cont002",
+      "style": {
+        "background_color": "#f44336",
+        "text_color": "#ffffff",
+        "border_color": "#d32f2f",
+        "border_width": 1,
+        "border_radius": 8,
+        "font_family": "Microsoft YaHei",
+        "font_size": 14,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "close_window",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "target_window_id": "",
+      "branch_name": "",
+      "open_mode": "new_window",
+      "is_default": false,
+      "is_cancel": false
+    },
+    {
+      "id": "cont003",
+      "comp_type": "container",
+      "name": "设置容器",
+      "x": 100,
+      "y": 50,
+      "width": 400,
+      "height": 300,
+      "text": "设置",
+      "parent_id": "",
+      "style": {
+        "background_color": "#f5f5f5",
+        "text_color": "#333333",
+        "border_color": "#999999",
+        "border_width": 1,
+        "border_radius": 5,
+        "font_family": "Microsoft YaHei",
+        "font_size": 12,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "children": [],
+      "position_mode": "center",
+      "layout": "none",
+      "padding": 10,
+      "spacing": 5
+    },
+    {
+      "id": "lbl003",
+      "comp_type": "label",
+      "name": "设置标题",
+      "x": 200,
+      "y": 108,
+      "width": 200,
+      "height": 30,
+      "text": "玩家名称:",
+      "parent_id": "cont003",
+      "style": {
+        "background_color": "transparent",
+        "text_color": "#333333",
+        "border_color": "#999999",
+        "border_width": 0,
+        "border_radius": 0,
+        "font_family": "Microsoft YaHei",
+        "font_size": 12,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "alignment": "center",
+      "word_wrap": false
+    },
+    {
+      "id": "inp001",
+      "comp_type": "input",
+      "name": "玩家名称输入",
+      "x": 200,
+      "y": 158,
+      "width": 200,
+      "height": 35,
+      "text": "",
+      "parent_id": "cont003",
+      "style": {
+        "background_color": "#ffffff",
+        "text_color": "#333333",
+        "border_color": "#cccccc",
+        "border_width": 1,
+        "border_radius": 4,
+        "font_family": "Microsoft YaHei",
+        "font_size": 12,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "placeholder": "请输入玩家名称",
+      "max_length": 32767,
+      "is_password": false,
+      "is_multiline": false
+    },
+    {
+      "id": "btn004",
+      "comp_type": "button",
+      "name": "保存设置",
+      "x": 200,
+      "y": 228,
+      "width": 200,
+      "height": 40,
+      "text": "保存并返回",
+      "parent_id": "cont003",
+      "style": {
+        "background_color": "#4CAF50",
+        "text_color": "#ffffff",
+        "border_color": "#45a049",
+        "border_width": 1,
+        "border_radius": 8,
+        "font_family": "Microsoft YaHei",
+        "font_size": 12,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "close_window",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "target_window_id": "",
+      "branch_name": "",
+      "open_mode": "new_window",
+      "is_default": false,
+      "is_cancel": false
+    }
+  ],
+  "main_window_id": "main001",
+  "current_window_id": "main001"
+}
