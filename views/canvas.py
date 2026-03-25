@@ -22,8 +22,8 @@ from models import ComponentModel
 from utils.settings import app_settings
 
 
-DEFAULT_DESKTOP_WIDTH = 800
-DEFAULT_DESKTOP_HEIGHT = 600
+DEFAULT_DESKTOP_WIDTH = 1280
+DEFAULT_DESKTOP_HEIGHT = 720
 
 
 class ComponentGraphicsItem(QGraphicsObject):
@@ -40,7 +40,7 @@ class ComponentGraphicsItem(QGraphicsObject):
     
     moved = Signal(str, int, int)
     selected = Signal(str)
-    resized = Signal(str, int, int)
+    resized = Signal(dict)
     parent_changed = Signal(str, str)
     multi_move_finished = Signal(dict)
     
@@ -66,6 +66,10 @@ class ComponentGraphicsItem(QGraphicsObject):
         self._resize_start_rect = QRectF()
         self._resize_start_x = 0
         self._resize_start_y = 0
+        self._resize_old_width = 0
+        self._resize_old_height = 0
+        self._resize_old_x = 0
+        self._resize_old_y = 0
         self._dragging = False
         self._drag_start_pos = QPointF()
         self._selected_items_start_pos = {}
@@ -80,7 +84,15 @@ class ComponentGraphicsItem(QGraphicsObject):
         return self._model
     
     def boundingRect(self) -> QRectF:
-        return QRectF(0, 0, self._model.width, self._model.height)
+        rect = QRectF(0, 0, self._model.width, self._model.height)
+        
+        if self.isSelected():
+            handle_size = app_settings.handle_size
+            tolerance = app_settings.handle_click_tolerance
+            margin = (handle_size + tolerance) / 2
+            rect = rect.adjusted(-margin, -margin, margin, margin)
+        
+        return rect
     
     def shape(self):
         from PySide6.QtGui import QPainterPath
@@ -122,7 +134,7 @@ class ComponentGraphicsItem(QGraphicsObject):
         self.update()
     
     def paint(self, painter: QPainter, option, widget):
-        rect = self.boundingRect()
+        rect = QRectF(0, 0, self._model.width, self._model.height)
         style = self._model.style
         
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -153,7 +165,7 @@ class ComponentGraphicsItem(QGraphicsObject):
         
         pen_width = style.border_width
         if self.isSelected():
-            pen = QPen(QColor("#0078d7"), pen_width + 1, Qt.PenStyle.DashLine)
+            pen = QPen(QColor("#87CEEB"), pen_width + 1, Qt.PenStyle.DashLine)
         else:
             pen = QPen(QColor(style.border_color), pen_width)
         painter.setPen(pen)
@@ -202,7 +214,7 @@ class ComponentGraphicsItem(QGraphicsObject):
         
         painter.setBrush(QBrush(QColor("#ffffff")))
         if self.isSelected():
-            painter.setPen(QPen(QColor("#0078d7"), 2, Qt.PenStyle.DashLine))
+            painter.setPen(QPen(QColor("#87CEEB"), 2, Qt.PenStyle.DashLine))
         else:
             painter.setPen(QPen(QColor("#666666"), 1))
         
@@ -281,27 +293,31 @@ class ComponentGraphicsItem(QGraphicsObject):
                 painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
     
     def _paint_container(self, painter: QPainter, rect: QRectF, style):
-        """绘制容器组件（Windows窗口样式）。"""
+        """绘制容器组件（Windows窗口样式）。
+        
+        rect 是内容区域，标题栏画在上方，不占用内容区域空间。
+        这样画布上容器大小与运行时一致。
+        """
         title_bar_height = 28
-        title_rect = QRectF(0, 0, rect.width(), title_bar_height)
-        body_rect = QRectF(0, title_bar_height, rect.width(), rect.height() - title_bar_height)
+        title_rect = QRectF(0, -title_bar_height, rect.width(), title_bar_height)
+        total_rect = QRectF(0, -title_bar_height, rect.width(), rect.height() + title_bar_height)
         
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(QColor("#f0f0f0")))
-        painter.drawRoundedRect(rect, style.border_radius, style.border_radius)
+        painter.drawRoundedRect(total_rect, style.border_radius, style.border_radius)
         
         title_gradient = QBrush(QColor("#e8e8e8"))
         painter.setBrush(title_gradient)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawRect(QRectF(0, 0, rect.width(), title_bar_height + style.border_radius))
+        painter.drawRect(QRectF(0, -title_bar_height, rect.width(), title_bar_height + style.border_radius))
         
         border_pen = QPen(QColor("#cccccc"), 1)
         painter.setPen(border_pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawRoundedRect(rect, style.border_radius, style.border_radius)
+        painter.drawRoundedRect(total_rect, style.border_radius, style.border_radius)
         
         painter.setPen(QPen(QColor("#333333"), 1))
-        painter.drawLine(0, title_bar_height, int(rect.width()), title_bar_height)
+        painter.drawLine(0, 0, int(rect.width()), 0)
         
         display_text = self._model.text or self._model.name
         painter.setPen(QColor("#333333"))
@@ -309,15 +325,14 @@ class ComponentGraphicsItem(QGraphicsObject):
         font.setBold(True)
         painter.setFont(font)
         text_margin = 8
-        text_rect = QRectF(text_margin, 0, rect.width() - 70, title_bar_height)
+        text_rect = QRectF(text_margin, -title_bar_height, rect.width() - 70, title_bar_height)
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, display_text)
         
         btn_size = 12
-        btn_y = (title_bar_height - btn_size) / 2
+        btn_y = -title_bar_height + (title_bar_height - btn_size) / 2
         btn_margin = 8
         
         min_x = rect.width() - btn_margin * 3 - btn_size * 3
-        min_rect = QRectF(min_x, btn_y, btn_size, btn_size)
         painter.setPen(QPen(QColor("#666666"), 1.5))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRect(QRectF(min_x, btn_y + btn_size/2 - 1, btn_size, 2))
@@ -336,7 +351,7 @@ class ComponentGraphicsItem(QGraphicsObject):
         else:
             painter.setBrush(QBrush(QColor("#ffffff")))
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawRect(body_rect.adjusted(1, 0, -1, -1))
+        painter.drawRect(rect.adjusted(1, 1, -1, -1))
     
     def _paint_component(self, painter: QPainter, rect: QRectF, style):
         """绘制普通组件。"""
@@ -370,7 +385,7 @@ class ComponentGraphicsItem(QGraphicsObject):
         
         pen_width = style.border_width
         if self.isSelected():
-            pen = QPen(QColor("#0078d7"), pen_width + 1, Qt.PenStyle.DashLine)
+            pen = QPen(QColor("#87CEEB"), pen_width + 1, Qt.PenStyle.DashLine)
         else:
             pen = QPen(QColor(style.border_color), pen_width)
         painter.setPen(pen)
@@ -384,7 +399,16 @@ class ComponentGraphicsItem(QGraphicsObject):
             painter.setFont(font)
             margin = 5
             text_rect = rect.adjusted(margin, margin, -margin, -margin)
-            painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, display_text)
+            
+            alignment = getattr(self._model, 'alignment', 'center')
+            if alignment == 'left':
+                text_flags = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            elif alignment == 'right':
+                text_flags = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            else:
+                text_flags = Qt.AlignmentFlag.AlignCenter
+            
+            painter.drawText(text_rect, text_flags, display_text)
     
     def _auto_resize_component(self, new_width: int, new_height: int):
         """自动调整组件大小。"""
@@ -396,7 +420,7 @@ class ComponentGraphicsItem(QGraphicsObject):
     def _draw_resize_handles(self, painter: QPainter, rect: QRectF):
         """绘制调整大小的手柄。"""
         handle_size = app_settings.handle_size
-        handle_brush = QBrush(QColor("#0078d7"))
+        handle_brush = QBrush(QColor("#87CEEB"))
         handle_pen = QPen(QColor("#ffffff"), 1)
         
         painter.setBrush(handle_brush)
@@ -464,9 +488,13 @@ class ComponentGraphicsItem(QGraphicsObject):
             self._resizing = True
             self._resize_handle = handle
             self._resize_start_pos = event.scenePos()
-            self._resize_start_rect = self.boundingRect()
+            self._resize_start_rect = QRectF(0, 0, self._model.width, self._model.height)
             self._resize_start_x = self._model.x
             self._resize_start_y = self._model.y
+            self._resize_old_width = self._model.width
+            self._resize_old_height = self._model.height
+            self._resize_old_x = self._model.x
+            self._resize_old_y = self._model.y
             event.accept()
             return
         
@@ -532,9 +560,25 @@ class ComponentGraphicsItem(QGraphicsObject):
         if self._resizing:
             self._resizing = False
             self._resize_handle = -1
-            self.resized.emit(self.component_id, 
-                            int(self._model.width), 
-                            int(self._model.height))
+            
+            size_changed = (self._model.width != self._resize_old_width or 
+                          self._model.height != self._resize_old_height)
+            pos_changed = (self._model.x != self._resize_old_x or 
+                          self._model.y != self._resize_old_y)
+            
+            if size_changed or pos_changed:
+                self.resized.emit({
+                    'id': self.component_id,
+                    'old_width': self._resize_old_width,
+                    'old_height': self._resize_old_height,
+                    'old_x': self._resize_old_x,
+                    'old_y': self._resize_old_y,
+                    'new_width': int(self._model.width),
+                    'new_height': int(self._model.height),
+                    'new_x': int(self._model.x),
+                    'new_y': int(self._model.y)
+                })
+            
             if self.scene():
                 self.scene().update()
             event.accept()

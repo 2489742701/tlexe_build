@@ -20,6 +20,8 @@ import cmd
 import platform
 from typing import Optional
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 def setup_dev_mode():
     """初始化开发者模式环境。"""

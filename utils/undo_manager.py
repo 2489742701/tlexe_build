@@ -122,6 +122,8 @@ class UndoManager(QObject):
         except Exception as e:
             print(f"撤销失败: {e}")
             self._undo_stack.append(action)
+            import traceback
+            traceback.print_exc()
             return False
     
     def redo(self) -> bool:

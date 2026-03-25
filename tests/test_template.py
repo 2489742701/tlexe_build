@@ -10,9 +10,9 @@
 4. 假进度条：等待几秒后继续执行
 5. 结果窗口：显示"恭喜您的电脑已经成功开机！"
 
-【信号系统使用】
-- 进度条完成信号：当假进度条达到100%时触发
-- 信号目标：跳转到结果窗口
+【进度条完成跳转】
+- 进度条设置 target_window_id 为结果窗口ID
+- 进度条完成后自动打开结果窗口
 """
 
 import json
@@ -206,15 +206,7 @@ def get_test_template() -> Dict[str, Any]:
                 'show_text': True,
                 'auto_progress': True,
                 'duration': 3,
-                'signals': [
-                    {
-                        'signal_id': 'signal_001',
-                        'signal_name': '进度条完成信号',
-                        'signal_type': 'progress_complete',
-                        'target_window_id': 'result_001',
-                        'description': '当假进度条达到100%时触发'
-                    }
-                ]
+                'target_window_id': 'result_001'
             },
             {
                 'id': 'label_hint',

@@ -8,7 +8,7 @@ from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
     QLabel, QLineEdit, QSpinBox, QCheckBox, QComboBox,
-    QPushButton, QGroupBox, QColorDialog, QFrame, QGridLayout
+    QPushButton, QGroupBox, QColorDialog, QFrame, QGridLayout, QSizePolicy
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
@@ -44,13 +44,13 @@ class PropertyPanel(QWidget):
     用于显示和编辑选中组件的属性。
     
     Signals:
-        property_changed: 属性改变时发射 (comp_id, property_name, value)
+        property_changed: 属性改变时发射 (comp_id, property_name, old_value, new_value)
         action_config_requested: 请求配置行为时发射 (comp_id)
         create_event_requested: 请求创建事件分支时发射 (button_id)
         goto_event_requested: 请求跳转到事件时发射 (window_id)
     """
     
-    property_changed = Signal(str, str, object)
+    property_changed = Signal(str, str, object, object)
     action_config_requested = Signal(str)
     create_event_requested = Signal(str)
     goto_event_requested = Signal(str)
@@ -98,6 +98,7 @@ class PropertyPanel(QWidget):
         
         scroll_content = QWidget()
         scroll_content.setStyleSheet("background-color: #ffffff;")
+        scroll_content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self._content_layout = QVBoxLayout(scroll_content)
         self._content_layout.setContentsMargins(12, 12, 12, 12)
         self._content_layout.setSpacing(16)
@@ -218,6 +219,35 @@ class PropertyPanel(QWidget):
         
         size_layout.addStretch()
         layout.addLayout(size_layout)
+        
+        align_layout = QHBoxLayout()
+        align_layout.setSpacing(8)
+        
+        h_align_label = QLabel("水平对齐:")
+        h_align_label.setFixedWidth(60)
+        align_layout.addWidget(h_align_label)
+        
+        self._h_align_combo = QComboBox()
+        self._h_align_combo.addItems(["无", "左对齐", "居中", "右对齐"])
+        self._h_align_combo.setCurrentIndex(0)
+        self._h_align_combo.currentIndexChanged.connect(lambda i: self._on_property_changed("h_align", ["none", "left", "center", "right"][i]))
+        self._h_align_combo.setFixedWidth(80)
+        align_layout.addWidget(self._h_align_combo)
+        
+        v_align_label = QLabel("垂直对齐:")
+        v_align_label.setFixedWidth(60)
+        v_align_label.setStyleSheet("margin-left: 10px;")
+        align_layout.addWidget(v_align_label)
+        
+        self._v_align_combo = QComboBox()
+        self._v_align_combo.addItems(["无", "顶部", "居中", "底部"])
+        self._v_align_combo.setCurrentIndex(0)
+        self._v_align_combo.currentIndexChanged.connect(lambda i: self._on_property_changed("v_align", ["none", "top", "center", "bottom"][i]))
+        self._v_align_combo.setFixedWidth(80)
+        align_layout.addWidget(self._v_align_combo)
+        
+        align_layout.addStretch()
+        layout.addLayout(align_layout)
         
         return group
     
@@ -342,6 +372,11 @@ class PropertyPanel(QWidget):
             self._width_spin.setValue(model.width)
             self._height_spin.setValue(model.height)
             
+            h_align = getattr(model, 'h_align', 'none')
+            v_align = getattr(model, 'v_align', 'none')
+            self._h_align_combo.setCurrentIndex({"none": 0, "left": 1, "center": 2, "right": 3}.get(h_align, 0))
+            self._v_align_combo.setCurrentIndex({"none": 0, "top": 1, "center": 2, "bottom": 3}.get(v_align, 0))
+            
             style = model.style
             self._update_color_btn(self._bg_btn, style.background_color)
             self._update_color_btn(self._text_color_btn, style.text_color)
@@ -366,6 +401,8 @@ class PropertyPanel(QWidget):
         self._y_spin.setValue(0)
         self._width_spin.setValue(100)
         self._height_spin.setValue(100)
+        self._h_align_combo.setCurrentIndex(0)
+        self._v_align_combo.setCurrentIndex(0)
         self._update_color_btn(self._bg_btn, "#ffffff")
         self._update_color_btn(self._text_color_btn, "#333333")
         self._update_color_btn(self._border_color_btn, "#cccccc")
@@ -381,19 +418,25 @@ class PropertyPanel(QWidget):
         btn.setStyleSheet(f"background-color: {color}; border: 1px solid #999; border-radius: 3px;")
         btn.setProperty("color", color)
     
-    def _on_property_changed(self, property_name: str, value):
+    def _on_property_changed(self, property_name: str, new_value):
         if self._updating or self._current_model is None:
             return
         
         if property_name.startswith("style."):
             style_prop = property_name.split(".")[1]
-            setattr(self._current_model.style, style_prop, value)
+            old_value = getattr(self._current_model.style, style_prop)
+            if old_value == new_value:
+                return
+            setattr(self._current_model.style, style_prop, new_value)
             self._current_model.style_changed.emit()
             self._current_model.data_changed.emit()
         else:
-            setattr(self._current_model, property_name, value)
+            old_value = getattr(self._current_model, property_name, None)
+            if old_value == new_value:
+                return
+            setattr(self._current_model, property_name, new_value)
         
-        self.property_changed.emit(self._current_model.id, property_name, value)
+        self.property_changed.emit(self._current_model.id, property_name, old_value, new_value)
     
     def _on_bg_color_click(self):
         color = QColorDialog.getColor(QColor(self._current_model.style.background_color), self, "选择背景色")
@@ -463,6 +506,13 @@ class PropertyPanel(QWidget):
         cancel_check.setChecked(model.is_cancel)
         cancel_check.stateChanged.connect(lambda v: self._on_property_changed("is_cancel", bool(v)))
         self._add_type_row("取消按钮:", cancel_check)
+        
+        align_combo = QComboBox()
+        align_combo.addItems(["左对齐", "居中", "右对齐"])
+        align_combo.setCurrentIndex({"left": 0, "center": 1, "right": 2}.get(model.alignment, 1))
+        align_combo.currentIndexChanged.connect(lambda i: self._on_property_changed("alignment", ["left", "center", "right"][i]))
+        align_combo.setFixedWidth(100)
+        self._add_type_row("对齐:", align_combo)
         
         branch_label = QLabel(model.branch_name or "无")
         branch_label.setStyleSheet("color: #666;")
@@ -601,3 +651,16 @@ class PropertyPanel(QWidget):
         duration_spin.setFixedWidth(60)
         duration_spin.valueChanged.connect(lambda v: self._on_property_changed("duration", v))
         self._add_type_row("持续时间:", duration_spin)
+        
+        if model.target_window_id:
+            target_label = QLabel(model.target_window_id)
+            target_label.setStyleSheet("color: #666;")
+            self._add_type_row("目标窗口:", target_label)
+            
+            goto_btn = QPushButton("跳转到目标窗口")
+            goto_btn.clicked.connect(lambda: self.goto_event_requested.emit(model.target_window_id))
+            self._type_layout.addWidget(goto_btn)
+        else:
+            create_event_btn = QPushButton("创建完成事件")
+            create_event_btn.clicked.connect(lambda: self.create_event_requested.emit(model.id))
+            self._type_layout.addWidget(create_event_btn)

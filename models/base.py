@@ -104,6 +104,8 @@ class ComponentModel(QObject):
         self._visible = True
         self._enabled = True
         self._custom_props: Dict[str, Any] = {}
+        self._h_align: str = "none"
+        self._v_align: str = "none"
 
     @property
     def id(self) -> str:
@@ -227,6 +229,26 @@ class ComponentModel(QObject):
             self._enabled = value
             self.data_changed.emit()
 
+    @property
+    def h_align(self) -> str:
+        return self._h_align
+    
+    @h_align.setter
+    def h_align(self, value: str):
+        if self._h_align != value:
+            self._h_align = value
+            self.data_changed.emit()
+    
+    @property
+    def v_align(self) -> str:
+        return self._v_align
+    
+    @v_align.setter
+    def v_align(self, value: str):
+        if self._v_align != value:
+            self._v_align = value
+            self.data_changed.emit()
+
     def set_position(self, x: int, y: int):
         if self._x != x or self._y != y:
             self._x = x
@@ -262,6 +284,8 @@ class ComponentModel(QObject):
             'visible': self._visible,
             'enabled': self._enabled,
             'custom_props': self._custom_props,
+            'h_align': self._h_align,
+            'v_align': self._v_align,
         }
 
     @classmethod
@@ -302,6 +326,8 @@ class ComponentModel(QObject):
         instance._visible = data.get('visible', True)
         instance._enabled = data.get('enabled', True)
         instance._custom_props = data.get('custom_props', {})
+        instance._h_align = data.get('h_align', 'none')
+        instance._v_align = data.get('v_align', 'none')
         
         return instance
 
@@ -476,14 +502,22 @@ class ProjectModel(QObject):
 
     def create_event_for_button(self, button_id: str, event_name: str = "") -> str:
         from .window import WindowModel, WindowType
-        from .components import ButtonModel
+        from .components import ButtonModel, ProgressBarModel
         
-        button = self._components.get(button_id)
-        if not button or not isinstance(button, ButtonModel):
+        component = self._components.get(button_id)
+        if not component:
+            return ""
+        
+        if not isinstance(component, (ButtonModel, ProgressBarModel)):
             return ""
         
         if not event_name:
-            event_name = f"{button.text}事件"
+            if isinstance(component, ButtonModel):
+                event_name = f"{component.text}事件"
+            elif isinstance(component, ProgressBarModel):
+                event_name = f"{component.name}完成事件"
+            else:
+                event_name = "新事件"
         
         event_window = WindowModel(
             name=event_name,
@@ -492,8 +526,9 @@ class ProjectModel(QObject):
             height=400
         )
         
-        button.target_window_id = event_window.id
-        button.branch_name = event_name
+        component.target_window_id = event_window.id
+        if isinstance(component, ButtonModel):
+            component.branch_name = event_name
         
         self.add_window(event_window, button_id)
         

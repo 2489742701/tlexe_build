@@ -4,11 +4,14 @@
 """
 
 import sys
+import os
 from PySide6.QtWidgets import QApplication
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models import ProjectModel
 from runtime.runner import Runner
-from templates import get_test_template
+from tests.test_template import get_test_template
 
 
 def main():

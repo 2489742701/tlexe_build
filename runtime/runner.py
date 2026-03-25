@@ -271,8 +271,14 @@ class Runner:
         current_parent_id = parent_id
         total_offset_x = 0
         total_offset_y = 0
+        visited = set()
         
         while current_parent_id:
+            if current_parent_id in visited:
+                print(f"警告: 检测到容器循环引用: {current_parent_id}")
+                break
+            visited.add(current_parent_id)
+            
             if current_parent_id in self._container_original_positions:
                 parent_orig_x, parent_orig_y = self._container_original_positions[current_parent_id]
                 total_offset_x += parent_orig_x
@@ -318,7 +324,12 @@ class Runner:
         return None
     
     def _setup_auto_progress(self, progressbar, comp_data: Dict[str, Any], duration: int):
-        """设置自动进度条。"""
+        """设置自动进度条。
+        
+        进度条完成后，与按钮逻辑一致：
+        1. 如果有 target_window_id，打开目标窗口
+        2. 如果有 action.action_type，执行对应动作
+        """
         steps = 100
         interval = int(duration * 1000 / steps)
         current_step = [0]
@@ -334,12 +345,17 @@ class Runner:
                     timer.deleteLater()
                     progressbar._auto_timer = None
                 
-                signals = comp_data.get('signals', [])
-                for signal in signals:
-                    if signal.get('signal_type') == 'progress_complete':
-                        target_window_id = signal.get('target_window_id')
-                        if target_window_id:
-                            self._open_event_window(target_window_id)
+                target_window_id = comp_data.get('target_window_id')
+                action = comp_data.get('action', {})
+                action_type = action.get('action_type', 'none')
+                
+                if target_window_id:
+                    self._open_event_window(target_window_id)
+                elif action_type == 'close_program':
+                    self._close_all_windows()
+                elif action_type == 'close_window':
+                    for win in list(self._windows.values()):
+                        win.close()
         
         timer = QTimer(progressbar)
         timer.timeout.connect(update_progress)

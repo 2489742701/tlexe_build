@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
     
     # 【信号出口】选择和属性信号
     component_selected = Signal(str)            # 组件选中信号，参数：comp_id 组件ID
-    property_changed = Signal(str, str, object) # 属性改变信号，参数：comp_id 组件ID, property_name 属性名, new_value 新值
+    property_changed = Signal(str, str, object, object) # 属性改变信号，参数：comp_id 组件ID, property_name 属性名, old_value 旧值, new_value 新值
     action_config_requested = Signal(str)       # 行为配置请求，参数：comp_id 组件ID
     
     # 【信号出口】编辑操作信号

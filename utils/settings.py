@@ -19,8 +19,8 @@ class AppSettings:
     _instance = None
     
     DEFAULT_SETTINGS = {
-        "handle_size": 8,
-        "handle_click_tolerance": 24,
+        "handle_size": 16,
+        "handle_click_tolerance": 20,
         "grid_size": 10,
         "snap_to_grid": True,
         "show_grid": True,

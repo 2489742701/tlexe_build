@@ -121,6 +121,7 @@ class ProjectController:
                         if item:
                             item.moved.connect(self._on_item_moved)
                             item.multi_move_finished.connect(self._on_multi_move_finished)
+                            item.resized.connect(self._on_item_resized)
         
         if hasattr(self.window, 'signal_manager_panel') and self.window.signal_manager_panel:
             components = [comp.to_dict() for comp in self.project_model.get_all_components()]
@@ -422,7 +423,31 @@ class ProjectController:
         """重命名组件。"""
         comp = self.project_model.get_component(comp_id)
         if comp:
+            old_name = comp.name
+            if old_name == new_name:
+                return
+            
             comp.name = new_name
+            
+            def undo_rename(data):
+                c = self.project_model.get_component(data.get('id'))
+                if c:
+                    c.name = data.get('old_name')
+            
+            def redo_rename(data):
+                c = self.project_model.get_component(data.get('id'))
+                if c:
+                    c.name = data.get('new_name')
+            
+            self._undo_manager.push(
+                action_type='rename',
+                description=f"重命名 {old_name} 为 {new_name}",
+                undo_data={'id': comp_id, 'old_name': old_name, 'new_name': new_name},
+                redo_data={'id': comp_id, 'old_name': old_name, 'new_name': new_name},
+                undo_callback=undo_rename,
+                redo_callback=redo_rename
+            )
+            
             self.window.show_status_message(f"已重命名为: {new_name}")
     
     def _on_window_selected(self, window_id: str):
@@ -444,7 +469,31 @@ class ProjectController:
         """重命名窗口。"""
         window = self.project_model.get_window(window_id)
         if window:
+            old_name = window.name
+            if old_name == new_name:
+                return
+            
             window.name = new_name
+            
+            def undo_rename(data):
+                w = self.project_model.get_window(data.get('id'))
+                if w:
+                    w.name = data.get('old_name')
+            
+            def redo_rename(data):
+                w = self.project_model.get_window(data.get('id'))
+                if w:
+                    w.name = data.get('new_name')
+            
+            self._undo_manager.push(
+                action_type='rename_window',
+                description=f"重命名窗口 {old_name} 为 {new_name}",
+                undo_data={'id': window_id, 'old_name': old_name, 'new_name': new_name},
+                redo_data={'id': window_id, 'old_name': old_name, 'new_name': new_name},
+                undo_callback=undo_rename,
+                redo_callback=redo_rename
+            )
+            
             self.window.show_status_message(f"窗口已重命名为: {new_name}")
     
     def _on_component_selected(self, comp_id: str):
@@ -453,12 +502,148 @@ class ProjectController:
         if comp:
             self.window.property_panel.set_component(comp)
     
-    def _on_property_changed(self, comp_id: str, prop_name: str, new_value):
-        """属性改变。"""
+    def _on_property_changed(self, comp_id: str, prop_name: str, old_value, new_value):
+        """属性改变。
+        
+        Args:
+            comp_id: 组件ID
+            prop_name: 属性名称
+            old_value: 旧值
+            new_value: 新值
+        """
         comp = self.project_model.get_component(comp_id)
-        if comp:
-            if hasattr(comp, prop_name):
-                setattr(comp, prop_name, new_value)
+        if not comp:
+            return
+        
+        if prop_name.startswith("style."):
+            style_prop = prop_name.split(".")[1]
+            
+            def undo_style_change(data):
+                c = self.project_model.get_component(data.get('id'))
+                if c:
+                    setattr(c.style, data.get('prop'), data.get('old_value'))
+                    c.style_changed.emit()
+                    c.data_changed.emit()
+            
+            def redo_style_change(data):
+                c = self.project_model.get_component(data.get('id'))
+                if c:
+                    setattr(c.style, data.get('prop'), data.get('new_value'))
+                    c.style_changed.emit()
+                    c.data_changed.emit()
+            
+            self._undo_manager.push(
+                action_type='style_change',
+                description=f"修改 {comp.name} 样式.{style_prop}",
+                undo_data={'id': comp_id, 'prop': style_prop, 'old_value': old_value, 'new_value': new_value},
+                redo_data={'id': comp_id, 'prop': style_prop, 'old_value': old_value, 'new_value': new_value},
+                undo_callback=undo_style_change,
+                redo_callback=redo_style_change
+            )
+        else:
+            if prop_name in ["x", "y"]:
+                def undo_position_change(data):
+                    c = self.project_model.get_component(data.get('id'))
+                    if c:
+                        if data.get('prop') == 'x':
+                            c.x = data.get('old_value')
+                        else:
+                            c.y = data.get('old_value')
+                        item = self.window.designer_view.get_item(data.get('id'))
+                        if item:
+                            item.setPos(c.x, c.y)
+                
+                def redo_position_change(data):
+                    c = self.project_model.get_component(data.get('id'))
+                    if c:
+                        if data.get('prop') == 'x':
+                            c.x = data.get('new_value')
+                        else:
+                            c.y = data.get('new_value')
+                        item = self.window.designer_view.get_item(data.get('id'))
+                        if item:
+                            item.setPos(c.x, c.y)
+                
+                self._undo_manager.push(
+                    action_type='property_change',
+                    description=f"修改 {comp.name} {prop_name}",
+                    undo_data={'id': comp_id, 'prop': prop_name, 'old_value': old_value, 'new_value': new_value},
+                    redo_data={'id': comp_id, 'prop': prop_name, 'old_value': old_value, 'new_value': new_value},
+                    undo_callback=undo_position_change,
+                    redo_callback=redo_position_change
+                )
+            elif prop_name in ["width", "height"]:
+                def undo_size_change(data):
+                    c = self.project_model.get_component(data.get('id'))
+                    if c:
+                        if data.get('prop') == 'width':
+                            c.width = data.get('old_value')
+                        else:
+                            c.height = data.get('old_value')
+                        item = self.window.designer_view.get_item(data.get('id'))
+                        if item:
+                            item.update()
+                
+                def redo_size_change(data):
+                    c = self.project_model.get_component(data.get('id'))
+                    if c:
+                        if data.get('prop') == 'width':
+                            c.width = data.get('new_value')
+                        else:
+                            c.height = data.get('new_value')
+                        item = self.window.designer_view.get_item(data.get('id'))
+                        if item:
+                            item.update()
+                
+                self._undo_manager.push(
+                    action_type='property_change',
+                    description=f"修改 {comp.name} {prop_name}",
+                    undo_data={'id': comp_id, 'prop': prop_name, 'old_value': old_value, 'new_value': new_value},
+                    redo_data={'id': comp_id, 'prop': prop_name, 'old_value': old_value, 'new_value': new_value},
+                    undo_callback=undo_size_change,
+                    redo_callback=redo_size_change
+                )
+            else:
+                def undo_prop_change(data):
+                    c = self.project_model.get_component(data.get('id'))
+                    if c:
+                        setattr(c, data.get('prop'), data.get('old_value'))
+                        c.data_changed.emit()
+                
+                def redo_prop_change(data):
+                    c = self.project_model.get_component(data.get('id'))
+                    if c:
+                        setattr(c, data.get('prop'), data.get('new_value'))
+                        c.data_changed.emit()
+                
+                self._undo_manager.push(
+                    action_type='property_change',
+                    description=f"修改 {comp.name} {prop_name}",
+                    undo_data={'id': comp_id, 'prop': prop_name, 'old_value': old_value, 'new_value': new_value},
+                    redo_data={'id': comp_id, 'prop': prop_name, 'old_value': old_value, 'new_value': new_value},
+                    undo_callback=undo_prop_change,
+                    redo_callback=redo_prop_change
+                )
+            
+            if comp.type == "container" and prop_name in ["width", "height"]:
+                current_window = self.project_model.current_window
+                if current_window:
+                    container_comp = None
+                    for cid in current_window.components:
+                        c = self.project_model.get_component(cid)
+                        if c and c.type == "container":
+                            container_comp = c
+                            break
+                    
+                    if container_comp and container_comp.id == comp_id:
+                        if prop_name == "width":
+                            current_window.width = new_value
+                        elif prop_name == "height":
+                            current_window.height = new_value
+                        
+                        self.window.designer_view.set_desktop_size(
+                            current_window.width, current_window.height
+                        )
     
     def _on_action_config(self, comp_id: str):
         """配置动作。"""
@@ -567,6 +752,7 @@ class ProjectController:
             if item:
                 item.moved.connect(self._on_item_moved)  # 【信号入口】组件移动 -> 记录撤销
                 item.multi_move_finished.connect(self._on_multi_move_finished)  # 【信号入口】多选移动完成 -> 记录撤销
+                item.resized.connect(self._on_item_resized)  # 【信号入口】组件调整大小 -> 同步窗口尺寸
     
     def _on_item_moved(self, comp_id: str, new_x: int, new_y: int):
         """组件移动后的回调。
@@ -664,6 +850,79 @@ class ProjectController:
             debug_log('position', "位置数据为空，不推入撤销栈")
         debug_log('position', f"{'='*50}\n")
     
+    def _on_item_resized(self, resize_data: dict):
+        """组件调整大小后的回调。
+        
+        当组件调整大小时，记录撤销操作并同步更新窗口模型和画布桌面大小。
+        
+        Args:
+            resize_data: 包含调整前后尺寸和位置的字典
+        """
+        comp_id = resize_data.get('id')
+        old_width = resize_data.get('old_width', 0)
+        old_height = resize_data.get('old_height', 0)
+        old_x = resize_data.get('old_x', 0)
+        old_y = resize_data.get('old_y', 0)
+        new_width = resize_data.get('new_width', 0)
+        new_height = resize_data.get('new_height', 0)
+        new_x = resize_data.get('new_x', 0)
+        new_y = resize_data.get('new_y', 0)
+        
+        comp = self.project_model.get_component(comp_id)
+        if not comp:
+            return
+        
+        def undo_resize(data):
+            """撤销调整大小操作的回调函数。"""
+            c = self.project_model.get_component(data.get('id'))
+            if c:
+                c.width = data.get('old_width', 100)
+                c.height = data.get('old_height', 100)
+                c.x = data.get('old_x', 0)
+                c.y = data.get('old_y', 0)
+                item = self.window.designer_view.get_item(data.get('id'))
+                if item:
+                    item.setPos(data.get('old_x', 0), data.get('old_y', 0))
+                    item.update()
+        
+        def redo_resize(data):
+            """重做调整大小操作的回调函数。"""
+            c = self.project_model.get_component(data.get('id'))
+            if c:
+                c.width = data.get('new_width', 100)
+                c.height = data.get('new_height', 100)
+                c.x = data.get('new_x', 0)
+                c.y = data.get('new_y', 0)
+                item = self.window.designer_view.get_item(data.get('id'))
+                if item:
+                    item.setPos(data.get('new_x', 0), data.get('new_y', 0))
+                    item.update()
+        
+        self._undo_manager.push(
+            action_type='resize',
+            description=f"调整 {comp.name} 大小",
+            undo_data=resize_data,
+            redo_data=resize_data,
+            undo_callback=undo_resize,
+            redo_callback=redo_resize
+        )
+        
+        if comp.type == "container":
+            current_window = self.project_model.current_window
+            if current_window:
+                container_comp = None
+                for cid in current_window.components:
+                    c = self.project_model.get_component(cid)
+                    if c and c.type == "container":
+                        container_comp = c
+                        break
+                
+                if container_comp and container_comp.id == comp_id:
+                    current_window.width = new_width
+                    current_window.height = new_height
+                    
+                    self.window.designer_view.set_desktop_size(new_width, new_height)
+    
     def _on_component_removed(self, comp_id: str):
         """组件移除后的回调。"""
         self.window.designer_view.remove_component_item(comp_id)
@@ -685,4 +944,6 @@ class ProjectController:
         
         components = self.project_model.get_components_for_window(window_id)
         for comp in components:
-            self.window.designer_view.add_component_item(comp)
+            item = self.window.designer_view.add_component_item(comp)
+            if item:
+                item.resized.connect(self._on_item_resized)

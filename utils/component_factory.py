@@ -148,7 +148,16 @@ class ComponentFactory:
         button = QPushButton()
         button.setText(model.text or "按钮")
         button.resize(model.width, model.height)
-        StyleHelper.apply_style(button, model.style)
+        
+        alignment = getattr(model, 'alignment', 'center')
+        if alignment == 'left':
+            extra = "text-align: left; padding-left: 10px;"
+        elif alignment == 'right':
+            extra = "text-align: right; padding-right: 10px;"
+        else:
+            extra = "text-align: center;"
+        
+        StyleHelper.apply_style(button, model.style, extra)
         return button
     
     @staticmethod

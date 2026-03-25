@@ -19,6 +19,7 @@ class ButtonModel(ComponentModel):
         self._open_mode: str = "new_window"
         self._is_default: bool = False
         self._is_cancel: bool = False
+        self._alignment: str = "center"
     
     @property
     def target_window_id(self) -> str:
@@ -85,6 +86,16 @@ class ButtonModel(ComponentModel):
     def has_branch(self) -> bool:
         return bool(self._target_window_id)
     
+    @property
+    def alignment(self) -> str:
+        return self._alignment
+    
+    @alignment.setter
+    def alignment(self, value: str):
+        if self._alignment != value:
+            self._alignment = value
+            self.data_changed.emit()
+    
     def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
         data['target_window_id'] = self._target_window_id
@@ -92,6 +103,7 @@ class ButtonModel(ComponentModel):
         data['open_mode'] = self._open_mode
         data['is_default'] = self._is_default
         data['is_cancel'] = self._is_cancel
+        data['alignment'] = self._alignment
         return data
     
     @classmethod
@@ -102,6 +114,7 @@ class ButtonModel(ComponentModel):
         instance._open_mode = data.get('open_mode', 'new_window')
         instance._is_default = data.get('is_default', False)
         instance._is_cancel = data.get('is_cancel', False)
+        instance._alignment = data.get('alignment', 'center')
         return instance
 
 
@@ -415,7 +428,7 @@ class ProgressBarModel(ComponentModel):
         self._text_position: str = "center"
         self._auto_progress: bool = False
         self._duration: int = 3
-        self._signals: list = []
+        self._target_window_id: str = ""
     
     @property
     def value(self) -> int:
@@ -469,13 +482,24 @@ class ProgressBarModel(ComponentModel):
             self.data_changed.emit()
     
     @property
-    def signals(self) -> list:
-        return self._signals
+    def target_window_id(self) -> str:
+        return self._target_window_id
     
-    @signals.setter
-    def signals(self, value: list):
-        self._signals = value
-        self.data_changed.emit()
+    @target_window_id.setter
+    def target_window_id(self, value: str):
+        if self._target_window_id != value:
+            self._target_window_id = value
+            self.data_changed.emit()
+    
+    @property
+    def action_params(self) -> Dict[str, Any]:
+        return self._action.params
+    
+    @action_params.setter
+    def action_params(self, value: Dict[str, Any]):
+        if self._action.params != value:
+            self._action.params = value
+            self.data_changed.emit()
     
     def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
@@ -484,7 +508,7 @@ class ProgressBarModel(ComponentModel):
         data['text_position'] = self._text_position
         data['auto_progress'] = self._auto_progress
         data['duration'] = self._duration
-        data['signals'] = self._signals
+        data['target_window_id'] = self._target_window_id
         return data
     
     @classmethod
@@ -495,7 +519,7 @@ class ProgressBarModel(ComponentModel):
         instance._text_position = data.get('text_position', 'center')
         instance._auto_progress = data.get('auto_progress', False)
         instance._duration = data.get('duration', 3)
-        instance._signals = data.get('signals', [])
+        instance._target_window_id = data.get('target_window_id', '')
         return instance
 
 
