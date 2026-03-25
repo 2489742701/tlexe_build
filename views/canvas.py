@@ -675,7 +675,12 @@ class ComponentGraphicsItem(QGraphicsObject):
                         container_rect.width(), self.TITLE_BAR_HEIGHT
                     )
                     
-                    if container_rect.contains(scene_pos) and not title_bar_rect.contains(scene_pos):
+                    content_rect = QRectF(
+                        container_rect.left(), container_rect.top() + self.TITLE_BAR_HEIGHT,
+                        container_rect.width(), container_rect.height() - self.TITLE_BAR_HEIGHT
+                    )
+                    
+                    if content_rect.contains(scene_pos):
                         if best_container is None or item.model.id == self._model.parent_id:
                             best_container = item
                         elif self._model.parent_id == item.model.id:

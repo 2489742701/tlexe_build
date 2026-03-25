@@ -256,8 +256,6 @@ class Runner:
     def _calculate_relative_position(self, comp_data: Dict[str, Any], parent_id: str) -> tuple:
         """递归计算组件相对于父容器的位置。
         
-        支持多层容器嵌套，每层容器都会减去标题栏高度。
-        
         Args:
             comp_data: 组件数据
             parent_id: 直接父容器ID
@@ -282,7 +280,7 @@ class Runner:
             if current_parent_id in self._container_original_positions:
                 parent_orig_x, parent_orig_y = self._container_original_positions[current_parent_id]
                 total_offset_x += parent_orig_x
-                total_offset_y += parent_orig_y + self.TITLE_BAR_HEIGHT
+                total_offset_y += parent_orig_y
                 
                 current_parent_id = self._container_parents.get(current_parent_id, '')
             else:
