@@ -83,8 +83,13 @@ class ComponentGraphicsItem(QGraphicsObject):
     def model(self) -> ComponentModel:
         return self._model
     
+    TITLE_BAR_HEIGHT = 28
+    
     def boundingRect(self) -> QRectF:
         rect = QRectF(0, 0, self._model.width, self._model.height)
+        
+        if self._model.type == "container":
+            rect = QRectF(0, -self.TITLE_BAR_HEIGHT, self._model.width, self._model.height + self.TITLE_BAR_HEIGHT)
         
         if self.isSelected():
             handle_size = app_settings.handle_size
@@ -101,19 +106,34 @@ class ComponentGraphicsItem(QGraphicsObject):
         
         path = QPainterPath()
         
-        path.addRect(0, 0, self._model.width, self._model.height)
+        if self._model.type == "container":
+            path.addRect(0, -self.TITLE_BAR_HEIGHT, self._model.width, self._model.height + self.TITLE_BAR_HEIGHT)
+        else:
+            path.addRect(0, 0, self._model.width, self._model.height)
         
         if self.isSelected():
-            handles = [
-                QPointF(0, 0),
-                QPointF(self._model.width / 2, 0),
-                QPointF(self._model.width, 0),
-                QPointF(self._model.width, self._model.height / 2),
-                QPointF(self._model.width, self._model.height),
-                QPointF(self._model.width / 2, self._model.height),
-                QPointF(0, self._model.height),
-                QPointF(0, self._model.height / 2),
-            ]
+            if self._model.type == "container":
+                handles = [
+                    QPointF(0, -self.TITLE_BAR_HEIGHT),
+                    QPointF(self._model.width / 2, -self.TITLE_BAR_HEIGHT),
+                    QPointF(self._model.width, -self.TITLE_BAR_HEIGHT),
+                    QPointF(self._model.width, self._model.height / 2 - self.TITLE_BAR_HEIGHT / 2),
+                    QPointF(self._model.width, self._model.height),
+                    QPointF(self._model.width / 2, self._model.height),
+                    QPointF(0, self._model.height),
+                    QPointF(0, self._model.height / 2 - self.TITLE_BAR_HEIGHT / 2),
+                ]
+            else:
+                handles = [
+                    QPointF(0, 0),
+                    QPointF(self._model.width / 2, 0),
+                    QPointF(self._model.width, 0),
+                    QPointF(self._model.width, self._model.height / 2),
+                    QPointF(self._model.width, self._model.height),
+                    QPointF(self._model.width / 2, self._model.height),
+                    QPointF(0, self._model.height),
+                    QPointF(0, self._model.height / 2),
+                ]
             
             click_area = max(24, handle_size + app_settings.handle_click_tolerance)
             
@@ -153,7 +173,11 @@ class ComponentGraphicsItem(QGraphicsObject):
             self._paint_component(painter, rect, style)
         
         if self.isSelected():
-            self._draw_resize_handles(painter, rect)
+            if comp_type == "container":
+                selection_rect = QRectF(0, -self.TITLE_BAR_HEIGHT, self._model.width, self._model.height + self.TITLE_BAR_HEIGHT)
+            else:
+                selection_rect = rect
+            self._draw_resize_handles(painter, selection_rect)
     
     def _paint_combobox(self, painter: QPainter, rect: QRectF, style):
         """绘制下拉框组件。"""
@@ -455,7 +479,10 @@ class ComponentGraphicsItem(QGraphicsObject):
         tolerance = app_settings.handle_click_tolerance
         click_area = max(24, handle_size + tolerance)
         
-        rect = QRectF(0, 0, self._model.width, self._model.height)
+        if self._model.type == "container":
+            rect = QRectF(0, -self.TITLE_BAR_HEIGHT, self._model.width, self._model.height + self.TITLE_BAR_HEIGHT)
+        else:
+            rect = QRectF(0, 0, self._model.width, self._model.height)
         
         handles = [
             (QPointF(rect.left(), rect.top()), 0),
