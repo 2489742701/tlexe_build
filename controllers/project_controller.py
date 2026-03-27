@@ -51,6 +51,7 @@ class ProjectController:
         self.project_model = project_model
         self._undo_manager = UndoManager()
         self._clipboard: Optional[ComponentModel] = None
+        self._runner = None
         
         self._connect_signals()
         self._load_project_to_view()
@@ -64,7 +65,8 @@ class ProjectController:
         self.window.save_project.connect(self._on_save_project)            # 保存项目请求 -> 保存项目
         self.window.save_project_as.connect(self._on_save_project_as)      # 另存为请求 -> 另存项目
         self.window.export_project.connect(self._on_export_project)        # 导出请求 -> 导出项目
-        self.window.run_project.connect(self._on_run_project)              # 运行请求 -> 运行项目
+        self.window.run_project.connect(self._on_run_project)              # 运行请求 -> 运行完整项目
+        self.window.run_from_current.connect(self._on_run_from_current)    # 从当前窗口运行 -> 从当前窗口运行
         self.window.export_to_python.connect(self._on_export_to_python)    # 导出Python请求 -> 导出Python脚本
         self.window.import_from_python.connect(self._on_import_from_python)# 导入Python请求 -> 从Python导入
         
@@ -208,13 +210,13 @@ class ProjectController:
             self._on_export_to_python(file_path)
     
     def _on_run_project(self):
-        """运行项目。"""
+        """运行完整项目（从主窗口开始）。"""
         from runtime.runner import Runner
         
         project_data = self.project_model.to_dict()
         
         print(f"\n{'='*50}")
-        print("运行项目 - 组件数据汇总")
+        print("运行完整项目 - 组件数据汇总")
         print(f"{'='*50}")
         
         all_components = self.project_model.get_all_components()
@@ -232,8 +234,27 @@ class ProjectController:
         print("开始创建运行窗口")
         print(f"{'='*50}")
         
-        runner = Runner()
-        runner.run(project_data)
+        self._runner = Runner()
+        self._runner.run(project_data)
+    
+    def _on_run_from_current(self):
+        """从当前窗口运行项目。"""
+        from runtime.runner import Runner
+        
+        current_window_id = self.project_model.current_window_id
+        if not current_window_id:
+            self.window.show_status_message("没有当前窗口，无法运行")
+            return
+        
+        project_data = self.project_model.to_dict()
+        project_data['main_window_id'] = current_window_id
+        
+        print(f"\n{'='*50}")
+        print(f"从当前窗口运行 - {current_window_id}")
+        print(f"{'='*50}")
+        
+        self._runner = Runner()
+        self._runner.run(project_data)
     
     def _on_export_to_python(self, file_path: str):
         """导出为 Python 脚本。
@@ -453,6 +474,7 @@ class ProjectController:
     def _on_window_selected(self, window_id: str):
         """选中窗口。"""
         self.project_model.set_current_window(window_id)
+        self.window.logic_tree.select_window(window_id)
     
     def _on_create_event(self, button_id: str):
         """创建事件窗口。"""
@@ -501,6 +523,7 @@ class ProjectController:
         comp = self.project_model.get_component(comp_id)
         if comp:
             self.window.property_panel.set_component(comp)
+            self.window.logic_tree.select_component(comp_id)
     
     def _on_property_changed(self, comp_id: str, prop_name: str, old_value, new_value):
         """属性改变。

@@ -7,7 +7,7 @@
 from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
-    QLabel, QLineEdit, QSpinBox, QCheckBox, QComboBox,
+    QLabel, QLineEdit, QTextEdit, QSpinBox, QCheckBox, QComboBox,
     QPushButton, QGroupBox, QColorDialog, QFrame, QGridLayout, QSizePolicy
 )
 from PySide6.QtCore import Qt, Signal
@@ -157,12 +157,19 @@ class PropertyPanel(QWidget):
         self._name_edit.textChanged.connect(lambda v: self._on_property_changed("name", v))
         layout.addLayout(self._create_row("名称:", self._name_edit))
         
-        self._text_edit = QLineEdit()
+        self._text_edit = QTextEdit()
         self._text_edit.setPlaceholderText("输入显示文本")
-        self._text_edit.textChanged.connect(lambda v: self._on_property_changed("text", v))
+        self._text_edit.setMaximumHeight(80)
+        self._text_edit.textChanged.connect(self._on_text_edit_changed)
         layout.addLayout(self._create_row("文本:", self._text_edit))
         
         return group
+    
+    def _on_text_edit_changed(self):
+        if self._updating:
+            return
+        text = self._text_edit.toPlainText()
+        self._on_property_changed("text", text)
     
     def _create_geometry_group(self) -> QGroupBox:
         group = QGroupBox("位置和大小")
@@ -365,7 +372,7 @@ class PropertyPanel(QWidget):
             self._id_label.setText(model.id)
             self._type_label.setText(model.type)
             self._name_edit.setText(model.name)
-            self._text_edit.setText(model.text or "")
+            self._text_edit.setPlainText(model.text or "")
             
             self._x_spin.setValue(model.x)
             self._y_spin.setValue(model.y)

@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QSplitter, QWidget, QVBoxLayout, QHBoxLayout,
     QToolBar, QMenuBar, QMenu, QStatusBar, QFileDialog,
     QMessageBox, QApplication, QInputDialog, QPushButton, QLabel,
-    QDockWidget
+    QDockWidget, QToolButton
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence, QFont
@@ -28,7 +28,8 @@ class MainWindow(QMainWindow):
         save_project: 保存项目时发射
         save_project_as: 另存为项目时发射 (file_path)
         export_project: 导出项目时发射
-        run_project: 运行项目时发射
+        run_project: 运行完整项目时发射（从主窗口开始）
+        run_from_current: 从当前窗口运行时发射
         
         add_component: 添加组件时发射 (comp_type, parent_id)
         delete_component: 删除组件时发射 (comp_id)
@@ -52,7 +53,8 @@ class MainWindow(QMainWindow):
     save_project = Signal()                     # 保存项目请求
     save_project_as = Signal(str)               # 另存为项目请求，参数：file_path 目标文件路径
     export_project = Signal()                   # 导出项目请求
-    run_project = Signal()                      # 运行项目请求
+    run_project = Signal()                      # 运行完整项目请求（从主窗口开始）
+    run_from_current = Signal()                 # 从当前窗口运行请求
     export_to_python = Signal(str)              # 导出为Python脚本请求，参数：file_path 目标文件路径
     import_from_python = Signal(str)            # 从Python脚本导入请求，参数：file_path 源文件路径
     
@@ -630,9 +632,24 @@ class MainWindow(QMainWindow):
         
         toolbar.addSeparator()
         
-        run_btn = QAction("▶ 运行", self)
-        run_btn.triggered.connect(self.run_project.emit)
-        toolbar.addAction(run_btn)
+        run_menu = QMenu(self)
+        run_full_action = run_menu.addAction("运行完整流程 (F12)")
+        run_full_action.setToolTip("从主窗口开始运行整个项目流程")
+        run_full_action.triggered.connect(self.run_project.emit)
+        run_full_action.setShortcut("F12")
+        
+        run_current_action = run_menu.addAction("从当前页面运行")
+        run_current_action.setToolTip("从当前编辑的窗口开始运行")
+        run_current_action.triggered.connect(self.run_from_current.emit)
+        
+        run_btn = QToolButton(self)
+        run_btn.setText("▶ 运行")
+        run_btn.setMenu(run_menu)
+        run_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        run_btn.setStyleSheet("QToolButton::menu-indicator { subcontrol-position: right center; }")
+        run_btn.setDefaultAction(run_full_action)
+        run_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        toolbar.addWidget(run_btn)
     
     def _init_statusbar(self):
         """初始化状态栏。"""
