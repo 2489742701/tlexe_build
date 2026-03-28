@@ -11,6 +11,9 @@
 """
 
 import sys
+import os
+import traceback
+from datetime import datetime
 from typing import Dict, Any, Optional
 from PySide6.QtWidgets import QMainWindow, QWidget, QApplication
 from PySide6.QtCore import Qt, QTimer
@@ -18,6 +21,43 @@ from PySide6.QtCore import Qt, QTimer
 from utils.component_factory import create_component_widget
 from utils.settings import app_settings
 from .action_executor import ActionExecutor
+
+
+def _log_to_file(level: str, message: str):
+    """将日志写入文件。"""
+    try:
+        appdata = os.environ.get('APPDATA', '')
+        log_dir = os.path.join(appdata, 'UIDevTool', 'runtime_logs')
+        os.makedirs(log_dir, exist_ok=True)
+        
+        log_file = os.path.join(log_dir, f"runtime_{datetime.now().strftime('%Y%m%d')}.log")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(f"[{timestamp}] [{level}] {message}\n")
+    except Exception:
+        pass
+
+
+def _log_crash(error_msg: str):
+    """记录崩溃日志。"""
+    try:
+        appdata = os.environ.get('APPDATA', '')
+        crash_log_dir = os.path.join(appdata, 'UIDevTool', 'crash_logs')
+        os.makedirs(crash_log_dir, exist_ok=True)
+        
+        crash_file = os.path.join(crash_log_dir, f"runtime_crash_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        with open(crash_file, 'w', encoding='utf-8') as f:
+            f.write(f"UI快速开发工具 - 运行时崩溃日志\n")
+            f.write(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"{'='*60}\n\n")
+            f.write(error_msg)
+        
+        print(f"运行时崩溃日志已保存到: {crash_file}")
+        return crash_file
+    except Exception as e:
+        print(f"无法保存崩溃日志: {e}")
+        return None
 
 
 def debug_log(category: str, message: str, force: bool = False):
@@ -38,6 +78,7 @@ def debug_log(category: str, message: str, force: bool = False):
         return
     
     print(message)
+    _log_to_file("DEBUG", f"[{category}] {message}")
 
 
 class Runner:
@@ -68,48 +109,71 @@ class Runner:
         Args:
             project_data: 项目数据字典，包含窗口和组件信息
         """
-        print(f"\n{'='*50}")
-        print(f"开始运行项目")
-        print(f"{'='*50}")
-        debug_log('general', f"项目数据键: {list(project_data.keys())}")
-        
-        self._project_data = project_data
-        
-        main_window_id = project_data.get('main_window_id')
-        if not main_window_id:
-            print("错误: 未找到主窗口ID")
-            return
-        
-        debug_log('general', f"主窗口ID: {main_window_id}")
-        
-        windows = project_data.get('windows', [])
-        main_window_data = None
-        for win in windows:
-            if win.get('id') == main_window_id:
-                main_window_data = win
-                break
-        
-        if not main_window_data:
-            print(f"错误: 未找到ID为 {main_window_id} 的窗口数据")
-            return
-        
-        debug_log('general', f"主窗口名称: {main_window_data.get('name', '未命名')}")
-        
-        window = self._create_window(main_window_data)
-        if window:
-            self._windows[main_window_id] = window
-            self._executor = ActionExecutor(self._components, self._windows, self._project_data)
-            self._setup_actions(window, main_window_data)
+        try:
+            print(f"\n{'='*50}")
+            print(f"开始运行项目")
+            print(f"{'='*50}")
+            _log_to_file("INFO", f"开始运行项目")
+            _log_to_file("INFO", f"项目数据键: {list(project_data.keys())}")
+            debug_log('general', f"项目数据键: {list(project_data.keys())}")
             
-            print(f"\n窗口创建完成，组件数量: {len(self._components)}")
-            window.show()
-            print("窗口已显示")
-        else:
-            print("错误: 窗口创建失败")
-        
-        print(f"\n{'='*50}")
-        print("项目运行完成")
-        print(f"{'='*50}\n")
+            self._project_data = project_data
+            
+            main_window_id = project_data.get('main_window_id')
+            if not main_window_id:
+                print("错误: 未找到主窗口ID")
+                _log_to_file("ERROR", "未找到主窗口ID")
+                return
+            
+            debug_log('general', f"主窗口ID: {main_window_id}")
+            
+            windows = project_data.get('windows', [])
+            main_window_data = None
+            for win in windows:
+                if win.get('id') == main_window_id:
+                    main_window_data = win
+                    break
+            
+            if not main_window_data:
+                print(f"错误: 未找到ID为 {main_window_id} 的窗口数据")
+                _log_to_file("ERROR", f"未找到ID为 {main_window_id} 的窗口数据")
+                return
+            
+            debug_log('general', f"主窗口名称: {main_window_data.get('name', '未命名')}")
+            
+            window = self._create_window(main_window_data)
+            if window:
+                self._windows[main_window_id] = window
+                self._executor = ActionExecutor(self._components, self._windows, self._project_data)
+                self._setup_actions(window, main_window_data)
+                
+                print(f"\n窗口创建完成，组件数量: {len(self._components)}")
+                _log_to_file("INFO", f"窗口创建完成，组件数量: {len(self._components)}")
+                window.show()
+                print("窗口已显示")
+            else:
+                print("错误: 窗口创建失败")
+                _log_to_file("ERROR", "窗口创建失败")
+            
+            print(f"\n{'='*50}")
+            print("项目运行完成")
+            print(f"{'='*50}\n")
+            _log_to_file("INFO", "项目运行完成")
+        except Exception as e:
+            error_msg = f"运行项目时发生错误:\n{traceback.format_exc()}"
+            print(f"\n{'!'*60}\n{error_msg}\n{'!'*60}")
+            _log_to_file("CRITICAL", error_msg)
+            crash_file = _log_crash(error_msg)
+            
+            from PySide6.QtWidgets import QMessageBox
+            try:
+                QMessageBox.critical(
+                    None,
+                    "运行错误",
+                    f"运行项目时发生错误:\n\n{str(e)}\n\n错误日志已保存到:\n{crash_file or '未知'}"
+                )
+            except:
+                pass
     
     def _create_window(self, win_data: Dict[str, Any]) -> Optional[QMainWindow]:
         """创建窗口。
@@ -165,10 +229,10 @@ class Runner:
                 else:
                     other_comps.append(comp_data)
         
-        self._build_container_hierarchy(container_comps)
+        sorted_containers = self._build_container_hierarchy(container_comps)
         
-        print(f"\n--- 创建容器组件 ({len(container_comps)}个) ---")
-        for comp_data in container_comps:
+        print(f"\n--- 创建容器组件 ({len(sorted_containers)}个) ---")
+        for comp_data in sorted_containers:
             comp = self._create_component_from_dict(comp_data)
             if comp:
                 container_width = comp_data.get('width', 400)
@@ -240,21 +304,48 @@ class Runner:
         return window
     
     def _build_container_hierarchy(self, container_comps: list):
-        """构建容器层级关系。
+        """构建容器层级关系并排序。
+        
+        确保父容器在子容器之前创建。
         
         Args:
             container_comps: 容器组件数据列表
+            
+        Returns:
+            排序后的容器列表（父容器在前）
         """
         self._container_parents: Dict[str, str] = {}
+        comp_by_id: Dict[str, Dict] = {}
         
         for comp_data in container_comps:
             comp_id = comp_data.get('id', '')
             parent_id = comp_data.get('parent_id', '')
+            comp_by_id[comp_id] = comp_data
             if parent_id:
                 self._container_parents[comp_id] = parent_id
+        
+        sorted_containers = []
+        visited = set()
+        
+        def visit(comp_id: str):
+            if comp_id in visited:
+                return
+            visited.add(comp_id)
+            
+            if comp_id in self._container_parents:
+                parent_id = self._container_parents[comp_id]
+                if parent_id in comp_by_id:
+                    visit(parent_id)
+            
+            sorted_containers.append(comp_by_id[comp_id])
+        
+        for comp_id in comp_by_id:
+            visit(comp_id)
+        
+        return sorted_containers
     
     def _calculate_relative_position(self, comp_data: Dict[str, Any], parent_id: str) -> tuple:
-        """递归计算组件相对于父容器的位置。
+        """计算组件相对于父容器的位置。
         
         Args:
             comp_data: 组件数据
@@ -266,28 +357,13 @@ class Runner:
         comp_x = comp_data.get('x', 0)
         comp_y = comp_data.get('y', 0)
         
-        current_parent_id = parent_id
-        total_offset_x = 0
-        total_offset_y = 0
-        visited = set()
-        
-        while current_parent_id:
-            if current_parent_id in visited:
-                print(f"警告: 检测到容器循环引用: {current_parent_id}")
-                break
-            visited.add(current_parent_id)
-            
-            if current_parent_id in self._container_original_positions:
-                parent_orig_x, parent_orig_y = self._container_original_positions[current_parent_id]
-                total_offset_x += parent_orig_x
-                total_offset_y += parent_orig_y
-                
-                current_parent_id = self._container_parents.get(current_parent_id, '')
-            else:
-                break
-        
-        relative_x = comp_x - total_offset_x
-        relative_y = comp_y - total_offset_y
+        if parent_id in self._container_original_positions:
+            parent_orig_x, parent_orig_y = self._container_original_positions[parent_id]
+            relative_x = comp_x - parent_orig_x
+            relative_y = comp_y - parent_orig_y
+        else:
+            relative_x = comp_x
+            relative_y = comp_y
         
         return relative_x, relative_y
     

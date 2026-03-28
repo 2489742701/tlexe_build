@@ -36,6 +36,9 @@ class StyleHelper:
         Returns:
             样式表字符串
         """
+        if style.use_native_style:
+            return ""
+        
         style_parts = []
         
         if style.background_color and style.background_color != "transparent":
@@ -76,9 +79,10 @@ class StyleHelper:
             style: 样式配置对象
             extra_styles: 额外的样式字符串
         """
-        stylesheet = StyleHelper.get_stylesheet(style, extra_styles)
-        if stylesheet:
-            widget.setStyleSheet(stylesheet)
+        if not style.use_native_style:
+            stylesheet = StyleHelper.get_stylesheet(style, extra_styles)
+            if stylesheet:
+                widget.setStyleSheet(stylesheet)
         
         font = QFont(style.font_family, style.font_size)
         font.setBold(style.font_bold)
@@ -97,6 +101,18 @@ class StyleHelper:
         font = QFont(style.font_family, style.font_size)
         font.setBold(style.font_bold)
         return font
+    
+    @staticmethod
+    def is_native_style(style: StyleConfig) -> bool:
+        """检查是否使用原生样式。
+        
+        Args:
+            style: 样式配置对象
+            
+        Returns:
+            True 表示使用原生样式，False 表示使用自定义样式
+        """
+        return style.use_native_style
 
 
 class ComponentFactory:
@@ -180,6 +196,14 @@ class ComponentFactory:
         extra = ""
         if model.style.background_color == "transparent":
             extra = "background-color: transparent;"
+        
+        if model.alignment == 'left':
+            extra += "text-align: left;"
+        elif model.alignment == 'right':
+            extra += "text-align: right;"
+        else:
+            extra += "text-align: center;"
+        
         StyleHelper.apply_style(label, model.style, extra)
         
         return label
@@ -258,17 +282,20 @@ class ComponentFactory:
         container = QFrame()
         container.resize(model.width, model.height)
         
-        style = model.style
-        bg_color = style.background_color if style.background_color != "transparent" else "#ffffff"
-        border_radius = style.border_radius
-        
-        container.setStyleSheet(f"""
-            QFrame {{
-                background-color: {bg_color};
-                border: 1px solid #cccccc;
-                border-radius: {border_radius}px;
-            }}
-        """)
+        if model.style.use_native_style:
+            container.setFrameStyle(QFrame.Shape.StyledPanel)
+        else:
+            style = model.style
+            bg_color = style.background_color if style.background_color != "transparent" else "#ffffff"
+            border_radius = style.border_radius
+            
+            container.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {bg_color};
+                    border: 1px solid #cccccc;
+                    border-radius: {border_radius}px;
+                }}
+            """)
         
         return container
     
@@ -311,7 +338,18 @@ class ComponentFactory:
             }
             widget.setAlignment(alignment_map.get(model.alignment, Qt.AlignmentFlag.AlignCenter))
             widget.setWordWrap(model.word_wrap)
-            StyleHelper.apply_style(widget, model.style)
+            
+            extra = ""
+            if model.style.background_color == "transparent":
+                extra = "background-color: transparent;"
+            if model.alignment == 'left':
+                extra += "text-align: left;"
+            elif model.alignment == 'right':
+                extra += "text-align: right;"
+            else:
+                extra += "text-align: center;"
+            
+            StyleHelper.apply_style(widget, model.style, extra)
         elif comp_type == 'checkbox':
             widget.setText(model.text or "复选框")
             widget.setChecked(model.checked)

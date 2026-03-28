@@ -326,19 +326,34 @@ class ComponentGraphicsItem(QGraphicsObject):
         title_rect = QRectF(0, -title_bar_height, rect.width(), title_bar_height)
         total_rect = QRectF(0, -title_bar_height, rect.width(), rect.height() + title_bar_height)
         
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QBrush(QColor("#f0f0f0")))
-        painter.drawRoundedRect(total_rect, style.border_radius, style.border_radius)
+        use_native = getattr(style, 'use_native_style', False)
         
-        title_gradient = QBrush(QColor("#e8e8e8"))
+        if use_native:
+            bg_color = "#f0f0f0"
+            title_color = "#e8e8e8"
+            border_color = "#cccccc"
+            content_bg = "#ffffff"
+            border_radius = 5
+        else:
+            bg_color = "#f0f0f0"
+            title_color = "#e8e8e8"
+            border_color = style.border_color if style.border_color else "#cccccc"
+            content_bg = style.background_color if style.background_color and style.background_color != "transparent" else "#ffffff"
+            border_radius = style.border_radius
+        
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor(bg_color)))
+        painter.drawRoundedRect(total_rect, border_radius, border_radius)
+        
+        title_gradient = QBrush(QColor(title_color))
         painter.setBrush(title_gradient)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawRect(QRectF(0, -title_bar_height, rect.width(), title_bar_height + style.border_radius))
+        painter.drawRect(QRectF(0, -title_bar_height, rect.width(), title_bar_height + border_radius))
         
-        border_pen = QPen(QColor("#cccccc"), 1)
+        border_pen = QPen(QColor(border_color), 1)
         painter.setPen(border_pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawRoundedRect(total_rect, style.border_radius, style.border_radius)
+        painter.drawRoundedRect(total_rect, border_radius, border_radius)
         
         painter.setPen(QPen(QColor("#333333"), 1))
         painter.drawLine(0, 0, int(rect.width()), 0)
@@ -370,10 +385,7 @@ class ComponentGraphicsItem(QGraphicsObject):
         painter.drawLine(int(close_x + 2), int(btn_y + 2), int(close_x + btn_size - 2), int(btn_y + btn_size - 2))
         painter.drawLine(int(close_x + btn_size - 2), int(btn_y + 2), int(close_x + 2), int(btn_y + btn_size - 2))
         
-        if style.background_color and style.background_color != "transparent":
-            painter.setBrush(QBrush(QColor(style.background_color)))
-        else:
-            painter.setBrush(QBrush(QColor("#ffffff")))
+        painter.setBrush(QBrush(QColor(content_bg)))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRect(rect.adjusted(1, 1, -1, -1))
     
@@ -401,23 +413,38 @@ class ComponentGraphicsItem(QGraphicsObject):
                 
                 QTimer.singleShot(0, lambda: self._auto_resize_component(new_width, new_height))
         
-        if style.background_color != "transparent":
-            brush = QBrush(QColor(style.background_color))
+        use_native = getattr(style, 'use_native_style', False)
+        
+        if use_native:
+            bg_color = "#f0f0f0"
+            text_color = "#333333"
+            border_color = "#999999"
+            border_width = 1
+            border_radius = 4
+        else:
+            bg_color = style.background_color
+            text_color = style.text_color
+            border_color = style.border_color
+            border_width = style.border_width
+            border_radius = style.border_radius
+        
+        if bg_color != "transparent":
+            brush = QBrush(QColor(bg_color))
             painter.setBrush(brush)
         else:
             painter.setBrush(Qt.BrushStyle.NoBrush)
         
-        pen_width = style.border_width
+        pen_width = border_width
         if self.isSelected():
             pen = QPen(QColor("#87CEEB"), pen_width + 1, Qt.PenStyle.DashLine)
         else:
-            pen = QPen(QColor(style.border_color), pen_width)
+            pen = QPen(QColor(border_color), pen_width)
         painter.setPen(pen)
         
-        painter.drawRoundedRect(rect, style.border_radius, style.border_radius)
+        painter.drawRoundedRect(rect, border_radius, border_radius)
         
         if display_text:
-            painter.setPen(QColor(style.text_color))
+            painter.setPen(QColor(text_color))
             font = QFont(style.font_family, style.font_size)
             font.setBold(style.font_bold)
             painter.setFont(font)

@@ -277,17 +277,53 @@ class WelcomePage(QWidget):
     
     def _on_example_clicked(self, template_path: str):
         """点击案例时的回调。"""
-        if template_path == "templates/test_template.py":
-            from templates import get_test_template
-            template_data = get_test_template()
-            self.open_template_requested.emit(template_data)
-        elif template_path.endswith('.itexe'):
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            full_path = os.path.join(base_dir, template_path)
-            if os.path.exists(full_path):
-                self.open_project_requested.emit(full_path)
+        import traceback
+        from datetime import datetime
+        
+        print(f"\n{'='*60}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 点击案例: {template_path}")
+        print(f"{'='*60}")
+        
+        try:
+            if template_path == "templates/test_template.py":
+                print("正在导入 templates.get_test_template...")
+                from templates import get_test_template
+                print("导入成功，正在获取模板数据...")
+                template_data = get_test_template()
+                print(f"模板数据获取成功: {template_data.get('name', '未命名')}")
+                self.open_template_requested.emit(template_data)
+                print("模板打开信号已发射")
+            elif template_path.endswith('.itexe'):
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                full_path = os.path.join(base_dir, template_path)
+                print(f"尝试打开示例文件: {full_path}")
+                print(f"文件存在: {os.path.exists(full_path)}")
+                if os.path.exists(full_path):
+                    self.open_project_requested.emit(full_path)
+                    print("项目打开信号已发射")
+                else:
+                    print(f"错误: 文件不存在 - {full_path}")
+                    QMessageBox.warning(self, "文件不存在", f"示例文件不存在: {full_path}")
             else:
-                QMessageBox.warning(self, "文件不存在", f"示例文件不存在: {full_path}")
+                print(f"错误: 未知的模板路径类型 - {template_path}")
+        except Exception as e:
+            error_msg = f"打开案例失败: {template_path}\n错误: {str(e)}\n\n{traceback.format_exc()}"
+            print(f"\n{'!'*60}\n{error_msg}\n{'!'*60}")
+            
+            appdata = os.environ.get('APPDATA', '')
+            crash_log_dir = os.path.join(appdata, 'UIDevTool', 'crash_logs')
+            os.makedirs(crash_log_dir, exist_ok=True)
+            
+            crash_file = os.path.join(crash_log_dir, f"example_crash_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+            with open(crash_file, 'w', encoding='utf-8') as f:
+                f.write(f"UI快速开发工具 - 案例打开失败日志\n")
+                f.write(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"模板路径: {template_path}\n")
+                f.write(f"{'='*60}\n\n")
+                f.write(error_msg)
+            
+            print(f"错误日志已保存到: {crash_file}")
+            QMessageBox.critical(self, "打开案例失败", f"无法打开案例:\n{str(e)}\n\n错误日志已保存到:\n{crash_file}")
     
     def _update_recent_projects(self):
         """更新最近项目列表。"""

@@ -264,6 +264,28 @@ class PropertyPanel(QWidget):
         layout = QVBoxLayout(group)
         layout.setSpacing(10)
         
+        style_mode_layout = QHBoxLayout()
+        style_mode_layout.setSpacing(8)
+        
+        mode_label = QLabel("样式模式:")
+        mode_label.setFixedWidth(60)
+        style_mode_layout.addWidget(mode_label)
+        
+        self._style_mode_combo = QComboBox()
+        self._style_mode_combo.addItems(["自定义样式", "系统原生风格"])
+        self._style_mode_combo.setCurrentIndex(0)
+        self._style_mode_combo.currentIndexChanged.connect(self._on_style_mode_changed)
+        self._style_mode_combo.setFixedWidth(120)
+        style_mode_layout.addWidget(self._style_mode_combo)
+        
+        style_mode_layout.addStretch()
+        layout.addLayout(style_mode_layout)
+        
+        self._custom_style_widget = QWidget()
+        custom_layout = QVBoxLayout(self._custom_style_widget)
+        custom_layout.setContentsMargins(0, 0, 0, 0)
+        custom_layout.setSpacing(10)
+        
         colors_layout = QHBoxLayout()
         colors_layout.setSpacing(8)
         
@@ -287,7 +309,7 @@ class PropertyPanel(QWidget):
         colors_layout.addWidget(self._text_color_btn)
         
         colors_layout.addStretch()
-        layout.addLayout(colors_layout)
+        custom_layout.addLayout(colors_layout)
         
         border_layout = QHBoxLayout()
         border_layout.setSpacing(8)
@@ -313,7 +335,7 @@ class PropertyPanel(QWidget):
         border_layout.addWidget(self._border_width_spin)
         
         border_layout.addStretch()
-        layout.addLayout(border_layout)
+        custom_layout.addLayout(border_layout)
         
         other_layout = QHBoxLayout()
         other_layout.setSpacing(8)
@@ -349,7 +371,9 @@ class PropertyPanel(QWidget):
         other_layout.addWidget(self._bold_check)
         
         other_layout.addStretch()
-        layout.addLayout(other_layout)
+        custom_layout.addLayout(other_layout)
+        
+        layout.addWidget(self._custom_style_widget)
         
         return group
     
@@ -385,6 +409,8 @@ class PropertyPanel(QWidget):
             self._v_align_combo.setCurrentIndex({"none": 0, "top": 1, "center": 2, "bottom": 3}.get(v_align, 0))
             
             style = model.style
+            self._style_mode_combo.setCurrentIndex(1 if style.use_native_style else 0)
+            self._custom_style_widget.setEnabled(not style.use_native_style)
             self._update_color_btn(self._bg_btn, style.background_color)
             self._update_color_btn(self._text_color_btn, style.text_color)
             self._update_color_btn(self._border_color_btn, style.border_color)
@@ -410,6 +436,8 @@ class PropertyPanel(QWidget):
         self._height_spin.setValue(100)
         self._h_align_combo.setCurrentIndex(0)
         self._v_align_combo.setCurrentIndex(0)
+        self._style_mode_combo.setCurrentIndex(0)
+        self._custom_style_widget.setEnabled(True)
         self._update_color_btn(self._bg_btn, "#ffffff")
         self._update_color_btn(self._text_color_btn, "#333333")
         self._update_color_btn(self._border_color_btn, "#cccccc")
@@ -462,6 +490,11 @@ class PropertyPanel(QWidget):
         if color.isValid():
             self._on_property_changed("style.border_color", color.name())
             self._update_color_btn(self._border_color_btn, color.name())
+    
+    def _on_style_mode_changed(self, index: int):
+        use_native = (index == 1)
+        self._custom_style_widget.setEnabled(not use_native)
+        self._on_property_changed("style.use_native_style", use_native)
     
     def _update_type_specific_properties(self, model: ComponentModel):
         self._clear_type_specific_properties()

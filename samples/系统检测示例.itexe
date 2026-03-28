@@ -1,0 +1,275 @@
+{
+  "name": "系统检测示例",
+  "windows": [
+    {
+      "id": "main001",
+      "name": "系统检测中",
+      "window_type": "main",
+      "width": 450,
+      "height": 250,
+      "title": "系统检测",
+      "components": [
+        "cont001",
+        "lbl001",
+        "prog001"
+      ],
+      "trigger_button_id": null
+    },
+    {
+      "id": "result001",
+      "name": "检测结果",
+      "window_type": "event",
+      "width": 400,
+      "height": 220,
+      "title": "检测结果",
+      "components": [
+        "cont002",
+        "lbl002",
+        "lbl003",
+        "btn001"
+      ],
+      "trigger_button_id": null
+    }
+  ],
+  "components": [
+    {
+      "id": "cont001",
+      "comp_type": "container",
+      "name": "检测容器",
+      "x": 25,
+      "y": 15,
+      "width": 400,
+      "height": 200,
+      "text": "系统检测程序 v1.0",
+      "parent_id": "",
+      "style": {
+        "background_color": "#f5f5f5",
+        "text_color": "#333333",
+        "border_color": "#cccccc",
+        "border_width": 1,
+        "border_radius": 5,
+        "font_family": "Microsoft YaHei",
+        "font_size": 12,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "children": [],
+      "position_mode": "center",
+      "layout": "none",
+      "padding": 15,
+      "spacing": 10
+    },
+    {
+      "id": "lbl001",
+      "comp_type": "label",
+      "name": "检测提示",
+      "x": 50,
+      "y": 60,
+      "width": 300,
+      "height": 40,
+      "text": "正在检测您的电脑是否已开机...",
+      "parent_id": "cont001",
+      "style": {
+        "background_color": "transparent",
+        "text_color": "#333333",
+        "border_color": "#cccccc",
+        "border_width": 0,
+        "border_radius": 0,
+        "font_family": "Microsoft YaHei",
+        "font_size": 13,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "alignment": "center",
+      "word_wrap": true
+    },
+    {
+      "id": "prog001",
+      "comp_type": "progressbar",
+      "name": "检测进度条",
+      "x": 50,
+      "y": 110,
+      "width": 300,
+      "height": 25,
+      "text": "",
+      "parent_id": "cont001",
+      "style": {
+        "background_color": "#e0e0e0",
+        "text_color": "#ffffff",
+        "border_color": "#cccccc",
+        "border_width": 1,
+        "border_radius": 3,
+        "font_family": "Microsoft YaHei",
+        "font_size": 11,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "value": 0,
+      "show_text": true,
+      "text_position": "center",
+      "auto_progress": true,
+      "duration": 4,
+      "target_window_id": "result001"
+    },
+    {
+      "id": "cont002",
+      "comp_type": "container",
+      "name": "结果容器",
+      "x": 0,
+      "y": 0,
+      "width": 400,
+      "height": 200,
+      "text": "检测完成",
+      "parent_id": "",
+      "style": {
+        "background_color": "#f5f5f5",
+        "text_color": "#4CAF50",
+        "border_color": "#4CAF50",
+        "border_width": 2,
+        "border_radius": 5,
+        "font_family": "Microsoft YaHei",
+        "font_size": 14,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "children": [],
+      "position_mode": "center",
+      "layout": "none",
+      "padding": 15,
+      "spacing": 10
+    },
+    {
+      "id": "lbl002",
+      "comp_type": "label",
+      "name": "成功标题",
+      "x": 50,
+      "y": 50,
+      "width": 300,
+      "height": 40,
+      "text": "恭喜您！电脑已开机",
+      "parent_id": "cont002",
+      "style": {
+        "background_color": "transparent",
+        "text_color": "#4CAF50",
+        "border_color": "#4CAF50",
+        "border_width": 0,
+        "border_radius": 0,
+        "font_family": "Microsoft YaHei",
+        "font_size": 18,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "alignment": "center",
+      "word_wrap": true
+    },
+    {
+      "id": "lbl003",
+      "comp_type": "label",
+      "name": "检测详情",
+      "x": 50,
+      "y": 95,
+      "width": 300,
+      "height": 50,
+      "text": "检测结果：CPU正常 | 内存正常 | 显示器已连接",
+      "parent_id": "cont002",
+      "style": {
+        "background_color": "transparent",
+        "text_color": "#666666",
+        "border_color": "#666666",
+        "border_width": 0,
+        "border_radius": 0,
+        "font_family": "Microsoft YaHei",
+        "font_size": 11,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "alignment": "center",
+      "word_wrap": true
+    },
+    {
+      "id": "btn001",
+      "comp_type": "button",
+      "name": "关闭按钮",
+      "x": 100,
+      "y": 150,
+      "width": 200,
+      "height": 35,
+      "text": "关闭程序",
+      "parent_id": "cont002",
+      "style": {
+        "background_color": "#4CAF50",
+        "text_color": "#ffffff",
+        "border_color": "#45a049",
+        "border_width": 1,
+        "border_radius": 5,
+        "font_family": "Microsoft YaHei",
+        "font_size": 13,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "close_program",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "target_window_id": "",
+      "branch_name": "",
+      "open_mode": "new_window",
+      "is_default": false,
+      "is_cancel": false
+    }
+  ],
+  "main_window_id": "main001",
+  "current_window_id": "main001"
+}

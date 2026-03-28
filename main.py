@@ -11,6 +11,8 @@
 import sys
 import os
 import argparse
+import traceback
+from datetime import datetime
 from PySide6.QtWidgets import QApplication, QStackedWidget
 from PySide6.QtGui import QFont
 
@@ -21,6 +23,60 @@ from views.register_dialog import RegisterDialog
 from controllers import ProjectController
 from utils.settings import app_settings
 from utils.session_logger import SessionLogger
+
+
+_session_logger: SessionLogger = None
+
+
+def exception_hook(exc_type, exc_value, exc_tb):
+    """全局异常处理钩子。
+    
+    捕获所有未处理的异常并记录到日志文件。
+    """
+    global _session_logger
+    
+    error_msg = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    full_log = f"\n{'='*60}\n[{timestamp}] 未捕获的异常:\n{error_msg}{'='*60}\n"
+    
+    print(full_log, file=sys.stderr)
+    
+    if _session_logger:
+        _session_logger.log("CRITICAL", f"未捕获的异常:\n{error_msg}")
+    
+    try:
+        appdata = os.environ.get('APPDATA', '')
+        crash_log_dir = os.path.join(appdata, 'UIDevTool', 'crash_logs')
+        os.makedirs(crash_log_dir, exist_ok=True)
+        
+        crash_file = os.path.join(crash_log_dir, f"crash_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        with open(crash_file, 'w', encoding='utf-8') as f:
+            f.write(f"UI快速开发工具 - 崩溃日志\n")
+            f.write(f"时间: {timestamp}\n")
+            f.write(f"{'='*60}\n\n")
+            f.write(full_log)
+            
+            if _session_logger:
+                f.write(f"\n\n{'='*60}\n")
+                f.write("最近日志记录:\n")
+                f.write(f"{'='*60}\n")
+                for log in _session_logger.get_logs()[-50:]:
+                    f.write(log + '\n')
+        
+        print(f"崩溃日志已保存到: {crash_file}")
+    except Exception as e:
+        print(f"无法保存崩溃日志: {e}")
+    
+    from PySide6.QtWidgets import QMessageBox
+    try:
+        QMessageBox.critical(
+            None,
+            "程序发生错误",
+            f"程序发生未预期的错误:\n\n{str(exc_value)}\n\n崩溃日志已保存到:\n{crash_file if 'crash_file' in dir() else '未知'}"
+        )
+    except:
+        pass
 
 
 def parse_args():
@@ -52,10 +108,16 @@ class AppManager:
     """
     
     def __init__(self, dev_mode: bool = False):
+        global _session_logger
+        
         self._app = QApplication(sys.argv)
         
         self._session_logger = SessionLogger()
+        _session_logger = self._session_logger
         self._session_logger.log("INFO", "应用程序启动")
+        self._session_logger.log("INFO", f"Python版本: {sys.version}")
+        self._session_logger.log("INFO", f"工作目录: {os.getcwd()}")
+        self._session_logger.log("INFO", f"命令行参数: {sys.argv}")
         
         if dev_mode:
             from dev_mode import DevModeManager
@@ -353,6 +415,8 @@ class AppManager:
 
 def main():
     """应用程序主函数。"""
+    sys.excepthook = exception_hook
+    
     args = parse_args()
     
     manager = AppManager(dev_mode=args.dev)

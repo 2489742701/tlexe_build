@@ -41,6 +41,7 @@ class StyleConfig:
         font_family: 字体名称，如 "Microsoft YaHei"
         font_size: 字体大小，单位磅
         font_bold: 是否加粗，True 为粗体，False 为正常
+        use_native_style: 是否使用原生样式，True 为系统原生风格，False 为自定义样式
     """
     background_color: str = "#f0f0f0"
     text_color: str = "#333333"
@@ -50,6 +51,7 @@ class StyleConfig:
     font_family: str = "Microsoft YaHei"
     font_size: int = 12
     font_bold: bool = False
+    use_native_style: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -61,6 +63,7 @@ class StyleConfig:
             'font_family': self.font_family,
             'font_size': self.font_size,
             'font_bold': self.font_bold,
+            'use_native_style': self.use_native_style,
         }
 
     @classmethod
@@ -74,6 +77,7 @@ class StyleConfig:
             font_family=data.get('font_family', 'Microsoft YaHei'),
             font_size=data.get('font_size', 12),
             font_bold=data.get('font_bold', False),
+            use_native_style=data.get('use_native_style', False),
         )
 
 
