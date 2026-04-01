@@ -520,26 +520,44 @@ class WelcomePage(QWidget):
             normalized = os.path.normpath(project_path).lower()
             return 'samples' in normalized or 'templates' in normalized
         
+        def normalize_path_for_comparison(project_path: str) -> str:
+            """规范化路径用于去重比较。"""
+            # 转换为绝对路径并规范化
+            abs_path = os.path.abspath(project_path)
+            # 统一大小写（Windows下路径不区分大小写）
+            normalized = os.path.normcase(abs_path)
+            # 移除多余的路径分隔符
+            normalized = os.path.normpath(normalized)
+            return normalized
+        
         is_new_official = is_official_example(normalized_path)
         
         # 分离官方案例和个人项目
         official_examples = [p for p in recent_projects if is_official_example(p.get('path', ''))]
         personal_projects = [p for p in recent_projects if not is_official_example(p.get('path', ''))]
         
-        # 根据新项目类型更新对应列表，只保留最新的1个
+        # 根据新项目类型更新对应列表，使用路径规范化去重
         new_project = {
             'name': name,
             'path': normalized_path,
             'last_opened': datetime.now().isoformat()
         }
         
-        if is_new_official:
-            official_examples = [new_project]  # 官方案例只保留1个
-        else:
-            personal_projects = [new_project]  # 个人项目只保留1个
+        new_normalized = normalize_path_for_comparison(normalized_path)
         
-        # 合并：最多1个官方案例 + 1个个人项目
-        recent_projects = official_examples + personal_projects
+        if is_new_official:
+            # 官方案例：移除所有重复路径，只保留最新的
+            official_examples = [p for p in official_examples 
+                               if normalize_path_for_comparison(p.get('path', '')) != new_normalized]
+            official_examples = [new_project] + official_examples  # 新项目放在最前面
+        else:
+            # 个人项目：移除所有重复路径，只保留最新的
+            personal_projects = [p for p in personal_projects 
+                               if normalize_path_for_comparison(p.get('path', '')) != new_normalized]
+            personal_projects = [new_project] + personal_projects  # 新项目放在最前面
+        
+        # 合并：最多保留5个项目（1个官方案例 + 4个个人项目）
+        recent_projects = official_examples[:1] + personal_projects[:4]
         
         self._config['recent_projects'] = recent_projects
         self._save_config()
