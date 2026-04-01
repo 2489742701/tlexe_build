@@ -575,6 +575,182 @@ class PropertyPanel(QWidget):
         action_btn.clicked.connect(lambda: self.action_config_requested.emit(model.id))
         self._type_layout.addWidget(action_btn)
     
+    def _add_image_properties(self, model: ImageModel):
+        """添加图片组件属性。"""
+        
+        # 图片路径选择
+        path_layout = QHBoxLayout()
+        path_edit = QLineEdit()
+        path_edit.setText(model.image_path)
+        path_edit.textChanged.connect(lambda v: self._on_property_changed("image_path", v))
+        path_edit.setPlaceholderText("图片文件路径")
+        path_layout.addWidget(path_edit)
+        
+        browse_btn = QPushButton("浏览...")
+        browse_btn.setFixedWidth(60)
+        browse_btn.clicked.connect(self._browse_image_file)
+        path_layout.addWidget(browse_btn)
+        
+        self._add_type_row("图片路径:", path_layout)
+        
+        # 缩放模式
+        scale_combo = QComboBox()
+        scale_combo.addItems(["保持比例", "拉伸填充", "居中显示"])
+        scale_map = {"keep_aspect": 0, "stretch": 1, "center": 2}
+        scale_combo.setCurrentIndex(scale_map.get(model.scale_mode, 0))
+        scale_combo.currentIndexChanged.connect(lambda i: self._on_property_changed(
+            "scale_mode", ["keep_aspect", "stretch", "center"][i]
+        ))
+        scale_combo.setFixedWidth(100)
+        self._add_type_row("缩放模式:", scale_combo)
+        
+        # 保持宽高比
+        aspect_check = QCheckBox()
+        aspect_check.setChecked(model.aspect_ratio)
+        aspect_check.stateChanged.connect(lambda v: self._on_property_changed("aspect_ratio", bool(v)))
+        self._add_type_row("保持比例:", aspect_check)
+        
+        # 圆角半径
+        radius_spin = QSpinBox()
+        radius_spin.setRange(0, 100)
+        radius_spin.setValue(model.border_radius)
+        radius_spin.setFixedWidth(60)
+        radius_spin.valueChanged.connect(lambda v: self._on_property_changed("border_radius", v))
+        self._add_type_row("圆角半径:", radius_spin)
+        
+        # 透明度
+        opacity_spin = QDoubleSpinBox()
+        opacity_spin.setRange(0.0, 1.0)
+        opacity_spin.setSingleStep(0.1)
+        opacity_spin.setValue(model.opacity)
+        opacity_spin.setFixedWidth(60)
+        opacity_spin.valueChanged.connect(lambda v: self._on_property_changed("opacity", v))
+        self._add_type_row("透明度:", opacity_spin)
+        
+        # 悬停效果
+        hover_check = QCheckBox()
+        hover_check.setChecked(model.hover_effect)
+        hover_check.stateChanged.connect(lambda v: self._on_property_changed("hover_effect", bool(v)))
+        self._add_type_row("悬停效果:", hover_check)
+        
+        # 点击动作
+        click_combo = QComboBox()
+        click_combo.addItems(["无动作", "放大查看", "打开原图"])
+        click_map = {"none": 0, "zoom": 1, "open_original": 2}
+        click_combo.setCurrentIndex(click_map.get(model.click_action, 0))
+        click_combo.currentIndexChanged.connect(lambda i: self._on_property_changed(
+            "click_action", ["none", "zoom", "open_original"][i]
+        ))
+        click_combo.setFixedWidth(100)
+        self._add_type_row("点击动作:", click_combo)
+        
+        # 占位文本
+        placeholder_edit = QLineEdit()
+        placeholder_edit.setText(model.placeholder_text)
+        placeholder_edit.textChanged.connect(lambda v: self._on_property_changed("placeholder_text", v))
+        placeholder_edit.setPlaceholderText("无图片时显示的文本")
+        self._add_type_row("占位文本:", placeholder_edit)
+    
+    def _add_video_properties(self, model: VideoModel):
+        """添加视频组件属性。"""
+        
+        # 视频路径选择
+        path_layout = QHBoxLayout()
+        path_edit = QLineEdit()
+        path_edit.setText(model.video_path)
+        path_edit.textChanged.connect(lambda v: self._on_property_changed("video_path", v))
+        path_edit.setPlaceholderText("视频文件路径")
+        path_layout.addWidget(path_edit)
+        
+        browse_btn = QPushButton("浏览...")
+        browse_btn.setFixedWidth(60)
+        browse_btn.clicked.connect(self._browse_video_file)
+        path_layout.addWidget(browse_btn)
+        
+        self._add_type_row("视频路径:", path_layout)
+        
+        # 自动播放
+        auto_check = QCheckBox()
+        auto_check.setChecked(model.auto_play)
+        auto_check.stateChanged.connect(lambda v: self._on_property_changed("auto_play", bool(v)))
+        self._add_type_row("自动播放:", auto_check)
+        
+        # 循环播放
+        loop_check = QCheckBox()
+        loop_check.setChecked(model.loop)
+        loop_check.stateChanged.connect(lambda v: self._on_property_changed("loop", bool(v)))
+        self._add_type_row("循环播放:", loop_check)
+        
+        # 静音
+        muted_check = QCheckBox()
+        muted_check.setChecked(model.muted)
+        muted_check.stateChanged.connect(lambda v: self._on_property_changed("muted", bool(v)))
+        self._add_type_row("静音:", muted_check)
+        
+        # 显示控制条
+        controls_check = QCheckBox()
+        controls_check.setChecked(model.controls)
+        controls_check.stateChanged.connect(lambda v: self._on_property_changed("controls", bool(v)))
+        self._add_type_row("控制条:", controls_check)
+        
+        # 音量
+        volume_spin = QDoubleSpinBox()
+        volume_spin.setRange(0.0, 1.0)
+        volume_spin.setSingleStep(0.1)
+        volume_spin.setValue(model.volume)
+        volume_spin.setFixedWidth(60)
+        volume_spin.valueChanged.connect(lambda v: self._on_property_changed("volume", v))
+        self._add_type_row("音量:", volume_spin)
+        
+        # 封面图片
+        poster_edit = QLineEdit()
+        poster_edit.setText(model.poster_image)
+        poster_edit.textChanged.connect(lambda v: self._on_property_changed("poster_image", v))
+        poster_edit.setPlaceholderText("封面图片路径")
+        self._add_type_row("封面图片:", poster_edit)
+        
+        # 播放速度
+        speed_spin = QDoubleSpinBox()
+        speed_spin.setRange(0.25, 4.0)
+        speed_spin.setSingleStep(0.25)
+        speed_spin.setValue(model.playback_rate)
+        speed_spin.setFixedWidth(60)
+        speed_spin.valueChanged.connect(lambda v: self._on_property_changed("playback_rate", v))
+        self._add_type_row("播放速度:", speed_spin)
+        
+        # 保持宽高比
+        aspect_check = QCheckBox()
+        aspect_check.setChecked(model.aspect_ratio)
+        aspect_check.stateChanged.connect(lambda v: self._on_property_changed("aspect_ratio", bool(v)))
+        self._add_type_row("保持比例:", aspect_check)
+        
+        # 占位文本
+        placeholder_edit = QLineEdit()
+        placeholder_edit.setText(model.placeholder_text)
+        placeholder_edit.textChanged.connect(lambda v: self._on_property_changed("placeholder_text", v))
+        placeholder_edit.setPlaceholderText("无视频时显示的文本")
+        self._add_type_row("占位文本:", placeholder_edit)
+    
+    def _browse_image_file(self):
+        """浏览图片文件。"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "选择图片文件", "", 
+            "图片文件 (*.png *.jpg *.jpeg *.bmp *.gif *.ico *.svg);;所有文件 (*.*)"
+        )
+        if file_path and self._current_model:
+            self._current_model.image_path = file_path
+            self._update_type_specific_properties(self._current_model)
+    
+    def _browse_video_file(self):
+        """浏览视频文件。"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "选择视频文件", "", 
+            "视频文件 (*.mp4 *.avi *.mov *.wmv *.flv *.mkv *.webm);;所有文件 (*.*)"
+        )
+        if file_path and self._current_model:
+            self._current_model.video_path = file_path
+            self._update_type_specific_properties(self._current_model)
+    
     def _add_label_properties(self, model: LabelModel):
         align_combo = QComboBox()
         align_combo.addItems(["左对齐", "居中", "右对齐"])

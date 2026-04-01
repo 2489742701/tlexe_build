@@ -20,6 +20,10 @@ COMPONENT_CATEGORIES: Dict[str, Dict[str, str]] = {
         "combobox": "下拉框",
         "progressbar": "进度条",
     },
+    "媒体类": {
+        "image": "图片",
+        "video": "视频",
+    },
     "容器类": {
         "container": "容器",
     },
@@ -36,6 +40,8 @@ COMPONENT_ICONS: Dict[str, str] = {
     "checkbox": "☑️",
     "combobox": "📋",
     "progressbar": "📊",
+    "image": "🖼️",
+    "video": "🎬",
     "container": "📦",
     "input": "✏️",
     "label": "📝",
