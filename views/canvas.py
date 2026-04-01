@@ -1,13 +1,23 @@
 """画布视图模块。
 
 本模块包含设计器画布和组件图形项的实现。
-支持桌面模拟、Alt+滚轮缩放、黑框边界等功能。
 
-主要功能：
-- 组件图形项的显示和交互
-- 拖拽移动、选中高亮、大小调整
-- 多选操作和撤销支持
-- 桌面模拟和缩放功能
+## 设计理念
+
+画布模拟的是 Windows 桌面屏幕，整个画布区域代表用户的显示器屏幕。
+用户在画布上设计界面，就像在真实的 Windows 桌面上放置窗口和控件一样。
+
+- **桌面区域**：画布中央的浅色区域，代表实际的显示器屏幕
+- **外部区域**：桌面周围的深色区域，代表屏幕边界之外
+- **组件**：放置在桌面上的窗口、按钮、标签等控件
+
+## 主要功能
+
+- 桌面模拟：模拟 Windows 桌面屏幕，让用户直观地设计界面布局
+- 组件图形项：显示和交互（拖拽、选中、调整大小）
+- 缩放功能：Alt+滚轮缩放画布，方便查看细节
+- 网格背景：辅助对齐和布局
+- 黑框边界：标识桌面区域的边界
 """
 
 from typing import Optional
@@ -27,9 +37,23 @@ DEFAULT_DESKTOP_HEIGHT = 720
 
 
 class ComponentGraphicsItem(QGraphicsObject):
-    """画布上的组件图形项。
+    """画布上的组件图形项 - 代表 Windows 桌面上的一个窗口或控件。
     
-    支持拖拽移动、选中高亮、大小调整等功能。
+    每个组件图形项对应设计中的一个界面元素，如按钮、标签、容器等。
+    组件放置在模拟的 Windows 桌面上，用户可以拖拽、调整大小、选中它们。
+    
+    ## 设计理念
+    
+    - 组件就像 Windows 桌面上的窗口，可以自由移动和调整大小
+    - 容器组件带有标题栏，模拟 Windows 窗口的外观
+    - 支持父子关系，子组件放在父容器内部
+    
+    ## 交互功能
+    
+    - 拖拽移动：鼠标拖拽移动组件位置
+    - 调整大小：拖拽边角调整组件尺寸
+    - 选中高亮：选中时显示蓝色边框和调整手柄
+    - 多选操作：Ctrl/Shift+点击多选组件
     
     Signals:
         moved: 组件移动时发射 (id, new_x, new_y)
@@ -812,9 +836,20 @@ class ComponentGraphicsItem(QGraphicsObject):
 
 
 class DesignerScene(QGraphicsScene):
-    """设计器场景。
+    """设计器场景 - 模拟 Windows 桌面屏幕。
     
-    支持桌面区域模拟、网格背景、黑框边界等功能。
+    画布中央的浅色区域代表用户的显示器屏幕（桌面区域），
+    周围的深色区域代表屏幕边界之外。
+    
+    用户在桌面区域上设计界面，就像在真实的 Windows 桌面上放置窗口一样。
+    
+    Attributes:
+        _desktop_width: 桌面宽度（模拟显示器宽度）
+        _desktop_height: 桌面高度（模拟显示器高度）
+        _grid_color: 网格线颜色
+        _desktop_border_color: 桌面边框颜色（黑框边界）
+        _outside_color: 桌面外部区域颜色
+        _desktop_bg_color: 桌面背景颜色
     """
     
     def __init__(self, desktop_width=DEFAULT_DESKTOP_WIDTH, desktop_height=DEFAULT_DESKTOP_HEIGHT, parent=None):
@@ -881,9 +916,23 @@ class DesignerScene(QGraphicsScene):
 
 
 class DesignerView(QGraphicsView):
-    """设计器视图。
+    """设计器视图 - Windows 桌面屏幕模拟器的主视图。
     
-    主画布视图，支持Alt+滚轮缩放、桌面模拟、居中显示等功能。
+    这是用户设计界面的主画布，显示模拟的 Windows 桌面屏幕。
+    用户可以在这个"虚拟桌面"上放置和调整窗口、按钮等组件。
+    
+    ## 核心概念
+    
+    - **画布 = Windows 桌面屏幕**：画布中央的浅色区域模拟用户的显示器
+    - **组件 = 窗口/控件**：放置在桌面上的按钮、标签、输入框等
+    - **设计 = 布局**：在虚拟桌面上安排界面元素的位置和大小
+    
+    ## 功能
+    
+    - Alt+滚轮缩放画布
+    - 鼠标拖拽平移画布
+    - 居中显示桌面区域
+    - 组件选中信号
     
     Signals:
         zoom_changed: 缩放比例改变时发射 (zoom_factor)

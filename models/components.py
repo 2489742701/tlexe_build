@@ -429,6 +429,7 @@ class ProgressBarModel(ComponentModel):
         self._auto_progress: bool = False
         self._duration: int = 3
         self._target_window_id: str = ""
+        self._branch_name: str = ""
     
     @property
     def value(self) -> int:
@@ -492,6 +493,20 @@ class ProgressBarModel(ComponentModel):
             self.data_changed.emit()
     
     @property
+    def branch_name(self) -> str:
+        return self._branch_name
+    
+    @branch_name.setter
+    def branch_name(self, value: str):
+        if self._branch_name != value:
+            self._branch_name = value
+            self.data_changed.emit()
+    
+    @property
+    def has_branch(self) -> bool:
+        return bool(self._target_window_id)
+    
+    @property
     def action_params(self) -> Dict[str, Any]:
         return self._action.params
     
@@ -509,6 +524,7 @@ class ProgressBarModel(ComponentModel):
         data['auto_progress'] = self._auto_progress
         data['duration'] = self._duration
         data['target_window_id'] = self._target_window_id
+        data['branch_name'] = self._branch_name
         return data
     
     @classmethod
@@ -520,6 +536,7 @@ class ProgressBarModel(ComponentModel):
         instance._auto_progress = data.get('auto_progress', False)
         instance._duration = data.get('duration', 3)
         instance._target_window_id = data.get('target_window_id', '')
+        instance._branch_name = data.get('branch_name', '')
         return instance
 
 

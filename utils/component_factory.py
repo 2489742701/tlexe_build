@@ -197,13 +197,6 @@ class ComponentFactory:
         if model.style.background_color == "transparent":
             extra = "background-color: transparent;"
         
-        if model.alignment == 'left':
-            extra += "text-align: left;"
-        elif model.alignment == 'right':
-            extra += "text-align: right;"
-        else:
-            extra += "text-align: center;"
-        
         StyleHelper.apply_style(label, model.style, extra)
         
         return label
@@ -342,12 +335,6 @@ class ComponentFactory:
             extra = ""
             if model.style.background_color == "transparent":
                 extra = "background-color: transparent;"
-            if model.alignment == 'left':
-                extra += "text-align: left;"
-            elif model.alignment == 'right':
-                extra += "text-align: right;"
-            else:
-                extra += "text-align: center;"
             
             StyleHelper.apply_style(widget, model.style, extra)
         elif comp_type == 'checkbox':

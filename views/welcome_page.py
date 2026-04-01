@@ -512,22 +512,34 @@ class WelcomePage(QWidget):
             name: 项目名称
             path: 项目路径
         """
-        # 规范化路径，确保相同路径不会重复
         normalized_path = os.path.normpath(os.path.abspath(path))
         
         recent_projects = self._config.get('recent_projects', [])
         
-        # 移除相同路径的旧记录（使用规范化路径比较）
-        recent_projects = [p for p in recent_projects 
-                          if os.path.normpath(os.path.abspath(p.get('path', ''))) != normalized_path]
+        def is_official_example(project_path: str) -> bool:
+            normalized = os.path.normpath(project_path).lower()
+            return 'samples' in normalized or 'templates' in normalized
         
-        recent_projects.insert(0, {
+        is_new_official = is_official_example(normalized_path)
+        
+        # 分离官方案例和个人项目
+        official_examples = [p for p in recent_projects if is_official_example(p.get('path', ''))]
+        personal_projects = [p for p in recent_projects if not is_official_example(p.get('path', ''))]
+        
+        # 根据新项目类型更新对应列表，只保留最新的1个
+        new_project = {
             'name': name,
             'path': normalized_path,
             'last_opened': datetime.now().isoformat()
-        })
+        }
         
-        recent_projects = recent_projects[:10]
+        if is_new_official:
+            official_examples = [new_project]  # 官方案例只保留1个
+        else:
+            personal_projects = [new_project]  # 个人项目只保留1个
+        
+        # 合并：最多1个官方案例 + 1个个人项目
+        recent_projects = official_examples + personal_projects
         
         self._config['recent_projects'] = recent_projects
         self._save_config()

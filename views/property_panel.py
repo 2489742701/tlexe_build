@@ -588,6 +588,7 @@ class PropertyPanel(QWidget):
         placeholder_edit = QLineEdit()
         placeholder_edit.setText(model.placeholder or "")
         placeholder_edit.setPlaceholderText("输入占位符文本")
+        placeholder_edit.setMinimumWidth(150)
         placeholder_edit.textChanged.connect(lambda v: self._on_property_changed("placeholder", v))
         self._add_type_row("占位符:", placeholder_edit)
         
@@ -602,7 +603,7 @@ class PropertyPanel(QWidget):
         self._add_type_row("多行:", multiline_check)
         
         max_length_spin = QSpinBox()
-        max_length_spin.setRange(0, 10000)
+        max_length_spin.setRange(0, 32767)
         max_length_spin.setValue(model.max_length)
         max_length_spin.setFixedWidth(80)
         max_length_spin.valueChanged.connect(lambda v: self._on_property_changed("max_length", v))
@@ -692,15 +693,19 @@ class PropertyPanel(QWidget):
         duration_spin.valueChanged.connect(lambda v: self._on_property_changed("duration", v))
         self._add_type_row("持续时间:", duration_spin)
         
-        if model.target_window_id:
-            target_label = QLabel(model.target_window_id)
-            target_label.setStyleSheet("color: #666;")
-            self._add_type_row("目标窗口:", target_label)
-            
-            goto_btn = QPushButton("跳转到目标窗口")
+        branch_label = QLabel(model.branch_name or "无")
+        branch_label.setStyleSheet("color: #666;")
+        self._add_type_row("分支:", branch_label)
+        
+        if model.has_branch:
+            goto_btn = QPushButton("跳转到事件")
             goto_btn.clicked.connect(lambda: self.goto_event_requested.emit(model.target_window_id))
             self._type_layout.addWidget(goto_btn)
         else:
-            create_event_btn = QPushButton("创建完成事件")
+            create_event_btn = QPushButton("创建事件分支")
             create_event_btn.clicked.connect(lambda: self.create_event_requested.emit(model.id))
             self._type_layout.addWidget(create_event_btn)
+        
+        action_btn = QPushButton("配置行为")
+        action_btn.clicked.connect(lambda: self.action_config_requested.emit(model.id))
+        self._type_layout.addWidget(action_btn)

@@ -3,9 +3,12 @@
 本模块是应用程序的入口点，负责初始化并启动应用程序。
 
 命令行参数:
-    python main.py                    # 正常启动
-    python main.py project.itexe      # 直接打开项目文件
-    python main.py --dev project.itexe # 开发者模式打开项目
+    python main.py                           # 正常启动，显示欢迎页
+    python main.py project.itexe             # 直接打开项目文件
+    python main.py --dev project.itexe       # 开发者模式打开项目
+    python main.py --run project.itexe       # 直接运行项目（不打开编辑器）
+    python main.py --skip-welcome            # 跳过欢迎页，直接显示空白编辑器
+    python main.py -r -d samples/demo.itexe  # 开发者模式直接运行项目
 """
 
 import sys
@@ -86,7 +89,16 @@ def parse_args():
         argparse.Namespace: 解析后的参数
     """
     parser = argparse.ArgumentParser(
-        description='UI快速开发工具 - 桌面应用程序可视化开发工具'
+        description='UI快速开发工具 - 桌面应用程序可视化开发工具',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+示例:
+  python main.py                           # 正常启动，显示欢迎页
+  python main.py project.itexe             # 直接打开项目文件
+  python main.py --run project.itexe       # 直接运行项目
+  python main.py -r -d samples/demo.itexe  # 开发者模式运行项目
+  python main.py --skip-welcome            # 跳过欢迎页
+        '''
     )
     parser.add_argument(
         'project', 
@@ -94,9 +106,19 @@ def parse_args():
         help='要打开的项目文件路径 (.itexe)'
     )
     parser.add_argument(
-        '--dev', 
+        '-d', '--dev', 
         action='store_true', 
         help='启用开发者模式'
+    )
+    parser.add_argument(
+        '-r', '--run', 
+        action='store_true', 
+        help='直接运行项目（不打开编辑器）'
+    )
+    parser.add_argument(
+        '-s', '--skip-welcome', 
+        action='store_true', 
+        help='跳过欢迎页，直接显示空白编辑器'
     )
     return parser.parse_args()
 
@@ -107,7 +129,7 @@ class AppManager:
     管理欢迎页和编辑器窗口之间的切换。
     """
     
-    def __init__(self, dev_mode: bool = False):
+    def __init__(self, dev_mode: bool = False, skip_welcome: bool = False):
         global _session_logger
         
         self._app = QApplication(sys.argv)
@@ -118,6 +140,8 @@ class AppManager:
         self._session_logger.log("INFO", f"Python版本: {sys.version}")
         self._session_logger.log("INFO", f"工作目录: {os.getcwd()}")
         self._session_logger.log("INFO", f"命令行参数: {sys.argv}")
+        
+        self._skip_welcome = skip_welcome
         
         if dev_mode:
             from dev_mode import DevModeManager
@@ -409,8 +433,40 @@ class AppManager:
             if register_dialog.exec() != RegisterDialog.DialogCode.Accepted:
                 return 0
         
+        if self._skip_welcome:
+            self._on_new_project()
+        
         self._stacked_widget.show()
         return self._app.exec()
+    
+    def run_project_directly(self, project_path: str):
+        """直接运行项目，不打开编辑器。
+        
+        Args:
+            project_path: 项目文件路径
+        """
+        import json
+        from runtime.runner import Runner
+        
+        self._session_logger.log("INFO", f"直接运行项目: {project_path}")
+        
+        try:
+            with open(project_path, 'r', encoding='utf-8') as f:
+                project_data = json.load(f)
+            
+            runner = Runner()
+            runner.run(project_data)
+            
+            return self._app.exec()
+        except Exception as e:
+            self._session_logger.log("ERROR", f"运行项目失败: {e}")
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(
+                None,
+                "运行失败",
+                f"无法运行项目:\n\n{str(e)}"
+            )
+            return 1
 
 
 def main():
@@ -419,7 +475,11 @@ def main():
     
     args = parse_args()
     
-    manager = AppManager(dev_mode=args.dev)
+    if args.run and args.project:
+        manager = AppManager(dev_mode=args.dev)
+        sys.exit(manager.run_project_directly(args.project))
+    
+    manager = AppManager(dev_mode=args.dev, skip_welcome=args.skip_welcome)
     
     if args.project:
         manager.open_project_file(args.project)

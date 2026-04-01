@@ -215,6 +215,12 @@ class Runner:
         debug_log('component', f"窗口大小: {window_width} x {window_height}")
         window.resize(window_width, window_height)
         
+        from PySide6.QtGui import QScreen
+        screen = QScreen.availableGeometry(QApplication.primaryScreen())
+        x = (screen.width() - window_width) // 2
+        y = (screen.height() - window_height) // 2
+        window.move(x, y)
+        
         central_widget = QWidget()
         window.setCentralWidget(central_widget)
         

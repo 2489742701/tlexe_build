@@ -56,10 +56,12 @@ class SignalEditDialog(QDialog):
     └─────────────────────────────────┘
     """
     
-    def __init__(self, components: List[Dict], connection: Optional[SignalConnection] = None, parent=None):
+    def __init__(self, components: List[Dict], connection: Optional[SignalConnection] = None, 
+                 selected_component_id: str = "", parent=None):
         super().__init__(parent)
         self._components = {c['id']: c for c in components}
         self._connection = connection
+        self._selected_component_id = selected_component_id
         self._result = None
         
         self.setWindowTitle("注册信号" if connection is None else "编辑信号")
@@ -69,6 +71,8 @@ class SignalEditDialog(QDialog):
         
         if connection:
             self._load_connection(connection)
+        elif selected_component_id:
+            self._select_source_component(selected_component_id)
     
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -149,6 +153,22 @@ class SignalEditDialog(QDialog):
         self._param_edit.setText(conn.action_params.get('param', ''))
         self._var_name_edit.setText(conn.action_params.get('variable_name', ''))
     
+    def _select_source_component(self, comp_id: str):
+        """选中指定的源组件，并根据组件类型设置默认信号类型。"""
+        for i in range(self._source_combo.count()):
+            if self._source_combo.itemData(i) == comp_id:
+                self._source_combo.setCurrentIndex(i)
+                break
+        
+        comp = self._components.get(comp_id, {})
+        comp_type = comp.get('type', '')
+        
+        if comp_type == 'input':
+            for i in range(self._signal_combo.count()):
+                if self._signal_combo.itemData(i) == SignalType.TEXT_CHANGED:
+                    self._signal_combo.setCurrentIndex(i)
+                    break
+    
     def _on_accept(self):
         """确认按钮处理。"""
         source_id = self._source_combo.currentData()
@@ -203,6 +223,7 @@ class SignalManagerPanel(QWidget):
         super().__init__(parent)
         self._components: List[Dict] = []
         self._comm_manager = get_communication_manager()
+        self._selected_component_id: str = ""
         
         self._setup_ui()
     
@@ -266,6 +287,10 @@ class SignalManagerPanel(QWidget):
         self._components = components
         self.refresh()
     
+    def set_selected_component(self, comp_id: str):
+        """设置当前选中的组件ID。"""
+        self._selected_component_id = comp_id
+    
     def refresh(self):
         """刷新信号列表。"""
         self._tree.clear()
@@ -316,7 +341,11 @@ class SignalManagerPanel(QWidget):
             QMessageBox.warning(self, "提示", "请先添加组件")
             return
         
-        dialog = SignalEditDialog(self._components, parent=self)
+        dialog = SignalEditDialog(
+            self._components, 
+            selected_component_id=self._selected_component_id,
+            parent=self
+        )
         if dialog.exec() == QDialog.DialogCode.Accepted:
             result = dialog.get_result()
             if result:

@@ -531,8 +531,7 @@ class ProjectModel(QObject):
         )
         
         component.target_window_id = event_window.id
-        if isinstance(component, ButtonModel):
-            component.branch_name = event_name
+        component.branch_name = event_name
         
         self.add_window(event_window, button_id)
         

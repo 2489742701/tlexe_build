@@ -524,6 +524,8 @@ class ProjectController:
         if comp:
             self.window.property_panel.set_component(comp)
             self.window.logic_tree.select_component(comp_id)
+            if hasattr(self.window, 'signal_manager_panel') and self.window.signal_manager_panel:
+                self.window.signal_manager_panel.set_selected_component(comp_id)
     
     def _on_property_changed(self, comp_id: str, prop_name: str, old_value, new_value):
         """属性改变。
