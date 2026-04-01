@@ -416,6 +416,278 @@ class ComboBoxModel(ComponentModel):
         return instance
 
 
+class ImageModel(ComponentModel):
+    """图片组件模型。"""
+    
+    def __init__(self, name: str = "", x: int = 0, y: int = 0,
+                 width: int = 200, height: int = 150, text: str = "",
+                 parent_id: str = ""):
+        super().__init__("image", name, x, y, width, height, text, parent_id)
+        self._image_path: str = ""
+        self._aspect_ratio: bool = True
+        self._scale_mode: str = "keep_aspect"  # keep_aspect, stretch, center
+        self._border_radius: int = 0
+        self._opacity: float = 1.0
+        self._hover_effect: bool = False
+        self._click_action: str = "none"  # none, zoom, open_original
+        self._placeholder_text: str = "点击选择图片"
+    
+    @property
+    def image_path(self) -> str:
+        return self._image_path
+    
+    @image_path.setter
+    def image_path(self, value: str):
+        if self._image_path != value:
+            self._image_path = value
+            self.data_changed.emit()
+    
+    @property
+    def aspect_ratio(self) -> bool:
+        return self._aspect_ratio
+    
+    @aspect_ratio.setter
+    def aspect_ratio(self, value: bool):
+        if self._aspect_ratio != value:
+            self._aspect_ratio = value
+            self.data_changed.emit()
+    
+    @property
+    def scale_mode(self) -> str:
+        return self._scale_mode
+    
+    @scale_mode.setter
+    def scale_mode(self, value: str):
+        valid_modes = ['keep_aspect', 'stretch', 'center']
+        if value in valid_modes and self._scale_mode != value:
+            self._scale_mode = value
+            self.data_changed.emit()
+    
+    @property
+    def border_radius(self) -> int:
+        return self._border_radius
+    
+    @border_radius.setter
+    def border_radius(self, value: int):
+        if self._border_radius != value:
+            self._border_radius = value
+            self.data_changed.emit()
+    
+    @property
+    def opacity(self) -> float:
+        return self._opacity
+    
+    @opacity.setter
+    def opacity(self, value: float):
+        if 0.0 <= value <= 1.0 and self._opacity != value:
+            self._opacity = value
+            self.data_changed.emit()
+    
+    @property
+    def hover_effect(self) -> bool:
+        return self._hover_effect
+    
+    @hover_effect.setter
+    def hover_effect(self, value: bool):
+        if self._hover_effect != value:
+            self._hover_effect = value
+            self.data_changed.emit()
+    
+    @property
+    def click_action(self) -> str:
+        return self._click_action
+    
+    @click_action.setter
+    def click_action(self, value: str):
+        valid_actions = ['none', 'zoom', 'open_original']
+        if value in valid_actions and self._click_action != value:
+            self._click_action = value
+            self.data_changed.emit()
+    
+    @property
+    def placeholder_text(self) -> str:
+        return self._placeholder_text
+    
+    @placeholder_text.setter
+    def placeholder_text(self, value: str):
+        if self._placeholder_text != value:
+            self._placeholder_text = value
+            self.data_changed.emit()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        data = super().to_dict()
+        data['image_path'] = self._image_path
+        data['aspect_ratio'] = self._aspect_ratio
+        data['scale_mode'] = self._scale_mode
+        data['border_radius'] = self._border_radius
+        data['opacity'] = self._opacity
+        data['hover_effect'] = self._hover_effect
+        data['click_action'] = self._click_action
+        data['placeholder_text'] = self._placeholder_text
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ImageModel':
+        instance = super().from_dict(data)
+        instance._image_path = data.get('image_path', '')
+        instance._aspect_ratio = data.get('aspect_ratio', True)
+        instance._scale_mode = data.get('scale_mode', 'keep_aspect')
+        instance._border_radius = data.get('border_radius', 0)
+        instance._opacity = data.get('opacity', 1.0)
+        instance._hover_effect = data.get('hover_effect', False)
+        instance._click_action = data.get('click_action', 'none')
+        instance._placeholder_text = data.get('placeholder_text', '点击选择图片')
+        return instance
+
+
+class VideoModel(ComponentModel):
+    """视频组件模型。"""
+    
+    def __init__(self, name: str = "", x: int = 0, y: int = 0,
+                 width: int = 400, height: int = 300, text: str = "",
+                 parent_id: str = ""):
+        super().__init__("video", name, x, y, width, height, text, parent_id)
+        self._video_path: str = ""
+        self._auto_play: bool = False
+        self._loop: bool = False
+        self._muted: bool = False
+        self._controls: bool = True
+        self._volume: float = 0.8
+        self._poster_image: str = ""
+        self._playback_rate: float = 1.0
+        self._aspect_ratio: bool = True
+        self._placeholder_text: str = "点击选择视频"
+    
+    @property
+    def video_path(self) -> str:
+        return self._video_path
+    
+    @video_path.setter
+    def video_path(self, value: str):
+        if self._video_path != value:
+            self._video_path = value
+            self.data_changed.emit()
+    
+    @property
+    def auto_play(self) -> bool:
+        return self._auto_play
+    
+    @auto_play.setter
+    def auto_play(self, value: bool):
+        if self._auto_play != value:
+            self._auto_play = value
+            self.data_changed.emit()
+    
+    @property
+    def loop(self) -> bool:
+        return self._loop
+    
+    @loop.setter
+    def loop(self, value: bool):
+        if self._loop != value:
+            self._loop = value
+            self.data_changed.emit()
+    
+    @property
+    def muted(self) -> bool:
+        return self._muted
+    
+    @muted.setter
+    def muted(self, value: bool):
+        if self._muted != value:
+            self._muted = value
+            self.data_changed.emit()
+    
+    @property
+    def controls(self) -> bool:
+        return self._controls
+    
+    @controls.setter
+    def controls(self, value: bool):
+        if self._controls != value:
+            self._controls = value
+            self.data_changed.emit()
+    
+    @property
+    def volume(self) -> float:
+        return self._volume
+    
+    @volume.setter
+    def volume(self, value: float):
+        if 0.0 <= value <= 1.0 and self._volume != value:
+            self._volume = value
+            self.data_changed.emit()
+    
+    @property
+    def poster_image(self) -> str:
+        return self._poster_image
+    
+    @poster_image.setter
+    def poster_image(self, value: str):
+        if self._poster_image != value:
+            self._poster_image = value
+            self.data_changed.emit()
+    
+    @property
+    def playback_rate(self) -> float:
+        return self._playback_rate
+    
+    @playback_rate.setter
+    def playback_rate(self, value: float):
+        if 0.25 <= value <= 4.0 and self._playback_rate != value:
+            self._playback_rate = value
+            self.data_changed.emit()
+    
+    @property
+    def aspect_ratio(self) -> bool:
+        return self._aspect_ratio
+    
+    @aspect_ratio.setter
+    def aspect_ratio(self, value: bool):
+        if self._aspect_ratio != value:
+            self._aspect_ratio = value
+            self.data_changed.emit()
+    
+    @property
+    def placeholder_text(self) -> str:
+        return self._placeholder_text
+    
+    @placeholder_text.setter
+    def placeholder_text(self, value: str):
+        if self._placeholder_text != value:
+            self._placeholder_text = value
+            self.data_changed.emit()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        data = super().to_dict()
+        data['video_path'] = self._video_path
+        data['auto_play'] = self._auto_play
+        data['loop'] = self._loop
+        data['muted'] = self._muted
+        data['controls'] = self._controls
+        data['volume'] = self._volume
+        data['poster_image'] = self._poster_image
+        data['playback_rate'] = self._playback_rate
+        data['aspect_ratio'] = self._aspect_ratio
+        data['placeholder_text'] = self._placeholder_text
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'VideoModel':
+        instance = super().from_dict(data)
+        instance._video_path = data.get('video_path', '')
+        instance._auto_play = data.get('auto_play', False)
+        instance._loop = data.get('loop', False)
+        instance._muted = data.get('muted', False)
+        instance._controls = data.get('controls', True)
+        instance._volume = data.get('volume', 0.8)
+        instance._poster_image = data.get('poster_image', '')
+        instance._playback_rate = data.get('playback_rate', 1.0)
+        instance._aspect_ratio = data.get('aspect_ratio', True)
+        instance._placeholder_text = data.get('placeholder_text', '点击选择视频')
+        return instance
+
+
 class ProgressBarModel(ComponentModel):
     """进度条组件模型。"""
     
@@ -547,6 +819,8 @@ COMPONENT_TYPE_MAP: Dict[str, Type[ComponentModel]] = {
     'container': ContainerModel,
     'checkbox': CheckBoxModel,
     'combobox': ComboBoxModel,
+    'image': ImageModel,
+    'video': VideoModel,
     'progressbar': ProgressBarModel,
 }
 

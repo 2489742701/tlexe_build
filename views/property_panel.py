@@ -15,7 +15,7 @@ from PySide6.QtGui import QColor
 
 from models import (
     ComponentModel, ButtonModel, LabelModel, InputModel, 
-    ContainerModel, CheckBoxModel, ComboBoxModel, ProgressBarModel
+    ContainerModel, CheckBoxModel, ComboBoxModel, ImageModel, VideoModel, ProgressBarModel
 )
 
 
@@ -511,6 +511,10 @@ class PropertyPanel(QWidget):
             self._add_checkbox_properties(model)
         elif isinstance(model, ComboBoxModel):
             self._add_combobox_properties(model)
+        elif isinstance(model, ImageModel):
+            self._add_image_properties(model)
+        elif isinstance(model, VideoModel):
+            self._add_video_properties(model)
         elif isinstance(model, ProgressBarModel):
             self._add_progressbar_properties(model)
     
