@@ -1055,6 +1055,16 @@ class ImageCarouselModel(ComponentModel):
             self.data_changed.emit()
     
     @property
+    def image_labels(self) -> list:
+        return self._image_labels
+    
+    @image_labels.setter
+    def image_labels(self, value: list):
+        if self._image_labels != value:
+            self._image_labels = value
+            self.data_changed.emit()
+    
+    @property
     def current_index(self) -> int:
         return self._current_index
     
