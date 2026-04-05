@@ -7,8 +7,8 @@
 from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
-    QLabel, QLineEdit, QTextEdit, QSpinBox, QCheckBox, QComboBox,
-    QPushButton, QGroupBox, QColorDialog, QFrame, QGridLayout, QSizePolicy
+    QLabel, QLineEdit, QTextEdit, QSpinBox, QDoubleSpinBox, QCheckBox, QComboBox,
+    QPushButton, QGroupBox, QColorDialog, QFileDialog, QFrame, QGridLayout, QSizePolicy, QLayout
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
@@ -524,8 +524,8 @@ class PropertyPanel(QWidget):
             if item.widget():
                 item.widget().deleteLater()
     
-    def _add_type_row(self, label_text: str, widget: QWidget) -> QHBoxLayout:
-        """创建特定属性行。"""
+    def _add_type_row(self, label_text: str, widget_or_layout) -> QHBoxLayout:
+        """创建特定属性行。支持 QWidget 或 QLayout 类型。"""
         layout = QHBoxLayout()
         layout.setSpacing(8)
         
@@ -534,7 +534,13 @@ class PropertyPanel(QWidget):
         label.setStyleSheet("color: #555;")
         layout.addWidget(label)
         
-        layout.addWidget(widget)
+        if isinstance(widget_or_layout, QLayout):
+            container = QWidget()
+            container.setLayout(widget_or_layout)
+            layout.addWidget(container)
+        else:
+            layout.addWidget(widget_or_layout)
+        
         layout.addStretch()
         
         self._type_layout.addLayout(layout)
@@ -593,22 +599,23 @@ class PropertyPanel(QWidget):
         
         self._add_type_row("图片路径:", path_layout)
         
-        # 缩放模式
+        # 缩放模式（已修复：移除与"保持比例"复选框的冲突）
+        # 下拉选项改为互斥的缩放方式，不再包含"保持比例"
         scale_combo = QComboBox()
-        scale_combo.addItems(["保持比例", "拉伸填充", "居中显示"])
-        scale_map = {"keep_aspect": 0, "stretch": 1, "center": 2}
-        scale_combo.setCurrentIndex(scale_map.get(model.scale_mode, 0))
+        scale_combo.addItems(["填充", "适应", "拉伸", "居中显示", "平铺"])
+        scale_map = {"fill": 0, "fit": 1, "stretch": 2, "center": 3, "tile": 4}
+        scale_combo.setCurrentIndex(scale_map.get(model.scale_mode, 1))  # 默认"适应"
         scale_combo.currentIndexChanged.connect(lambda i: self._on_property_changed(
-            "scale_mode", ["keep_aspect", "stretch", "center"][i]
+            "scale_mode", ["fill", "fit", "stretch", "center", "tile"][i]
         ))
         scale_combo.setFixedWidth(100)
         self._add_type_row("缩放模式:", scale_combo)
         
-        # 保持宽高比
+        # 保持宽高比（独立控制是否保持原始比例）
         aspect_check = QCheckBox()
         aspect_check.setChecked(model.aspect_ratio)
         aspect_check.stateChanged.connect(lambda v: self._on_property_changed("aspect_ratio", bool(v)))
-        self._add_type_row("保持比例:", aspect_check)
+        self._add_type_row("保持宽高比:", aspect_check)
         
         # 圆角半径
         radius_spin = QSpinBox()
@@ -718,11 +725,11 @@ class PropertyPanel(QWidget):
         speed_spin.valueChanged.connect(lambda v: self._on_property_changed("playback_rate", v))
         self._add_type_row("播放速度:", speed_spin)
         
-        # 保持宽高比
+        # 保持宽高比（独立控制是否保持原始比例）
         aspect_check = QCheckBox()
         aspect_check.setChecked(model.aspect_ratio)
         aspect_check.stateChanged.connect(lambda v: self._on_property_changed("aspect_ratio", bool(v)))
-        self._add_type_row("保持比例:", aspect_check)
+        self._add_type_row("保持宽高比:", aspect_check)
         
         # 占位文本
         placeholder_edit = QLineEdit()
@@ -752,6 +759,8 @@ class PropertyPanel(QWidget):
             self._update_type_specific_properties(self._current_model)
     
     def _add_label_properties(self, model: LabelModel):
+        """添加标签组件属性（已修复：添加缺失的 auto_size 属性）。"""
+        # 对齐方式
         align_combo = QComboBox()
         align_combo.addItems(["左对齐", "居中", "右对齐"])
         align_combo.setCurrentIndex({"left": 0, "center": 1, "right": 2}.get(model.alignment, 1))
@@ -759,10 +768,17 @@ class PropertyPanel(QWidget):
         align_combo.setFixedWidth(100)
         self._add_type_row("对齐:", align_combo)
         
+        # 自动换行（复选框）
         wrap_check = QCheckBox()
         wrap_check.setChecked(model.word_wrap)
         wrap_check.stateChanged.connect(lambda v: self._on_property_changed("word_wrap", bool(v)))
         self._add_type_row("自动换行:", wrap_check)
+        
+        # 自动调整大小（修复：添加缺失的属性）
+        auto_size_check = QCheckBox()
+        auto_size_check.setChecked(model.auto_size)
+        auto_size_check.stateChanged.connect(lambda v: self._on_property_changed("auto_size", bool(v)))
+        self._add_type_row("自动调整大小:", auto_size_check)
     
     def _add_input_properties(self, model: InputModel):
         placeholder_edit = QLineEdit()

@@ -119,14 +119,38 @@ class MainWindow(QMainWindow):
         from views.logic_tree import LogicTreeView
         self.logic_tree = LogicTreeView()
         
-        # 【信号入口】逻辑树视图信号 -> 主窗口信号/槽
+        # ==================== 信号连接（逻辑树 -> 主窗口） ====================
+        # 【信号连接】逻辑树.window_selected -> 主窗口._on_logic_window_selected
+        # 用途：选中窗口时切换当前编辑窗口
         self.logic_tree.window_selected.connect(self._on_logic_window_selected)
+        
+        # 【信号连接】逻辑树.component_selected -> 主窗口._on_tree_component_selected
+        # 用途：选中组件时在画布上高亮显示
         self.logic_tree.component_selected.connect(self._on_tree_component_selected)
+        
+        # 【信号连接】逻辑树.components_selected -> 主窗口._on_tree_components_selected
+        # 用途：多选组件时批量操作
         self.logic_tree.components_selected.connect(self._on_tree_components_selected)
+        
+        # 【信号连接】逻辑树.create_event_requested -> 主窗口._on_create_event_requested
+        # 用途：为按钮创建事件分支窗口
         self.logic_tree.create_event_requested.connect(self._on_create_event_requested)
+        
+        # 【信号连接】逻辑树.delete_component_requested -> 主窗口.delete_component
+        # 用途：删除指定组件
         self.logic_tree.delete_component_requested.connect(self.delete_component.emit)
+        
+        # 【信号连接】逻辑树.delete_window_requested -> 主窗口._on_delete_window
+        # 用途：删除指定窗口及其组件
         self.logic_tree.delete_window_requested.connect(self._on_delete_window)
+        
+        # 【信号连接】逻辑树.rename_requested -> 主窗口._on_rename_item
+        # 用途：重命名窗口或组件
         self.logic_tree.rename_requested.connect(self._on_rename_item)
+        
+        # 【信号连接】逻辑树.open_state_machine_requested -> 主窗口._toggle_state_machine_panel
+        # 用途：打开状态机视图面板
+        self.logic_tree.open_state_machine_requested.connect(self._toggle_state_machine_panel)
         
         self.tree_view = self.logic_tree
         
@@ -141,6 +165,10 @@ class MainWindow(QMainWindow):
         )
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self._logic_tree_dock)
         self._logic_tree_dock.visibilityChanged.connect(self._on_logic_tree_dock_visibility_changed)
+        
+        # ==================== 状态机视图（弹窗形式） ====================
+        # 状态机视图现在是 QDialog 弹窗，不再需要停靠窗口
+        # 弹窗在用户点击"📊"按钮时按需创建和显示
         
         # ==================== 组件面板停靠窗口 ====================
         from .component_panel import ComponentPanel
@@ -250,6 +278,15 @@ class MainWindow(QMainWindow):
             self._logic_tree_dock.hide()
         else:
             self._logic_tree_dock.show()
+    
+    def _toggle_state_machine_panel(self):
+        """打开状态机视图弹窗。"""
+        from views.state_machine_view import StateMachineDialog
+        
+        dialog = StateMachineDialog(self._project_model, self)
+        dialog.window_selected.connect(self._on_logic_window_selected)
+        dialog.create_event_requested.connect(self._on_create_event_requested)
+        dialog.show()  # 非模态显示
     
     def _toggle_component_panel(self):
         """切换组件面板的显示/隐藏。"""
@@ -501,6 +538,11 @@ class MainWindow(QMainWindow):
         self._logic_tree_toggle_action.triggered.connect(self._toggle_logic_tree_panel)
         view_menu.addAction(self._logic_tree_toggle_action)
         
+        self._state_machine_action = QAction("状态机视图", self)
+        self._state_machine_action.setShortcut("Ctrl+Shift+1")
+        self._state_machine_action.triggered.connect(self._toggle_state_machine_panel)
+        view_menu.addAction(self._state_machine_action)
+        
         self._component_panel_toggle_action = QAction("组件面板", self)
         self._component_panel_toggle_action.setCheckable(True)
         self._component_panel_toggle_action.setChecked(True)
@@ -610,6 +652,10 @@ class MainWindow(QMainWindow):
         self._logic_tree_toolbar_action.setChecked(True)
         self._logic_tree_toolbar_action.triggered.connect(self._toggle_logic_tree_panel)
         panel_menu.addAction(self._logic_tree_toolbar_action)
+        
+        self._state_machine_panel_action = QAction("状态机视图", self)
+        self._state_machine_panel_action.triggered.connect(self._toggle_state_machine_panel)
+        panel_menu.addAction(self._state_machine_panel_action)
         
         self._component_panel_toolbar_action = QAction("组件面板", self)
         self._component_panel_toolbar_action.setCheckable(True)

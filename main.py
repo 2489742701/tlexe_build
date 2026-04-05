@@ -9,6 +9,21 @@
     python main.py --run project.itexe       # 直接运行项目（不打开编辑器）
     python main.py --skip-welcome            # 跳过欢迎页，直接显示空白编辑器
     python main.py -r -d samples/demo.itexe  # 开发者模式直接运行项目
+
+## 修复说明 (2026-04-02)
+【问题】AppManager 类承担了过多职责（初始化、日志、开发者模式、字体设置、
+自动保存、临时文件管理等），违反了单一职责原则。
+
+【解决方案】
+1. 创建 services/initialization.py - AppInitializer 负责应用初始化
+2. 创建 services/auto_save_service.py - AutoSaveService 负责自动保存
+3. 创建 utils/temp_file_manager.py - TempFileManager 负责临时文件管理
+4. 简化 AppManager，只保留窗口管理相关的逻辑
+
+【收益】
+- 职责分离清晰，每个类只负责单一职责
+- 易于单元测试，可以单独测试各个服务
+- 新增功能只需扩展对应的服务，无需修改主类
 """
 
 import sys
@@ -16,8 +31,7 @@ import os
 import argparse
 import traceback
 from datetime import datetime
-from PySide6.QtWidgets import QApplication, QStackedWidget
-from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QApplication, QStackedWidget, QMessageBox
 
 from models import ProjectModel
 from views import MainWindow
@@ -26,6 +40,8 @@ from views.register_dialog import RegisterDialog
 from controllers import ProjectController
 from utils.settings import app_settings
 from utils.session_logger import SessionLogger
+from utils.temp_file_manager import TempFileManager
+from services import AppInitializer, AutoSaveService
 
 
 _session_logger: SessionLogger = None
@@ -71,7 +87,6 @@ def exception_hook(exc_type, exc_value, exc_tb):
     except Exception as e:
         print(f"无法保存崩溃日志: {e}")
     
-    from PySide6.QtWidgets import QMessageBox
     try:
         QMessageBox.critical(
             None,
@@ -120,6 +135,16 @@ def parse_args():
         action='store_true', 
         help='跳过欢迎页，直接显示空白编辑器'
     )
+    parser.add_argument(
+        '--test-blueprint', 
+        action='store_true', 
+        help='自动测试蓝图功能（打开项目后自动打开状态机视图）'
+    )
+    parser.add_argument(
+        'project', 
+        nargs='?', 
+        help='要打开的项目文件路径 (.itexe)'
+    )
     return parser.parse_args()
 
 
@@ -127,154 +152,92 @@ class AppManager:
     """应用程序管理器。
     
     管理欢迎页和编辑器窗口之间的切换。
+    
+    ## 修复说明 (2026-04-02)
+    【重构前】此类承担了过多职责：
+    - 应用初始化（QApplication 创建、日志初始化、开发者模式、字体设置）
+    - 自动保存逻辑（_auto_save_unsaved_project, _check_unsaved_before_exit）
+    - 临时文件管理（_get_unsaved_projects, _save_unsaved_projects, _get_temp_save_path）
+    - 窗口管理（欢迎页、编辑器切换）
+    
+    【重构后】职责分离：
+    - AppInitializer: 负责应用初始化
+    - AutoSaveService: 负责自动保存
+    - TempFileManager: 负责临时文件管理
+    - AppManager: 只负责窗口管理和用户交互流程
+    
+    这样每个类都有单一的、明确的职责，符合单一职责原则。
     """
     
     def __init__(self, dev_mode: bool = False, skip_welcome: bool = False):
+        """初始化应用程序管理器。
+        
+        Args:
+            dev_mode: 是否启用开发者模式
+            skip_welcome: 是否跳过欢迎页
+            
+        ## 修复说明 (2026-04-02)
+        使用 AppInitializer 进行初始化，移除了原本散落在 __init__ 中的
+        各种初始化代码，使此方法更加简洁清晰。
+        """
         global _session_logger
         
-        self._app = QApplication(sys.argv)
+        # 使用 AppInitializer 进行应用初始化
+        # 修复：将初始化逻辑抽取到独立的服务类
+        initializer = AppInitializer(dev_mode=dev_mode, skip_welcome=skip_welcome)
+        self._app = initializer.run()
         
-        self._session_logger = SessionLogger()
-        _session_logger = self._session_logger
-        self._session_logger.log("INFO", "应用程序启动")
-        self._session_logger.log("INFO", f"Python版本: {sys.version}")
-        self._session_logger.log("INFO", f"工作目录: {os.getcwd()}")
-        self._session_logger.log("INFO", f"命令行参数: {sys.argv}")
+        # 获取会话日志记录器，用于全局异常处理
+        _session_logger = initializer._session_logger
+        self._session_logger = initializer._session_logger
+        
+        # 初始化自动保存服务
+        # 修复：将自动保存逻辑抽取到 AutoSaveService
+        self._auto_save_service = AutoSaveService(session_logger=self._session_logger)
+        
+        # 初始化临时文件管理器
+        # 修复：将临时文件管理抽取到 TempFileManager
+        self._temp_file_manager = TempFileManager()
         
         self._skip_welcome = skip_welcome
         
-        if dev_mode:
-            from dev_mode import DevModeManager
-            DevModeManager.get_instance().enable()
-            self._session_logger.log("INFO", "开发者模式已启用")
-        
-        font_family = app_settings.font_family
-        font_size = app_settings.font_size
-        
-        font = QFont(font_family, font_size)
-        self._app.setFont(font)
-        
+        # 设置主窗口
         self._stacked_widget = QStackedWidget()
         self._stacked_widget.setWindowTitle("UI快速开发工具")
         self._stacked_widget.resize(1200, 800)
         
+        # 创建欢迎页
         self._welcome_page = WelcomePage()
-        
         self._welcome_page.new_project_requested.connect(self._on_new_project)
         self._welcome_page.open_project_requested.connect(self._on_open_project)
         self._welcome_page.open_template_requested.connect(self._on_open_template)
         self._welcome_page.logout_requested.connect(self._on_logout)
         self._stacked_widget.addWidget(self._welcome_page)
         
+        # 初始化其他成员
         self._main_window = None
         self._project_model = None
         self._controller = None
         
+        # 设置关闭事件处理
         self._setup_close_event()
     
     def _setup_close_event(self):
-        """设置关闭事件处理。"""
+        """设置关闭事件处理。
+        
+        ## 修复说明 (2026-04-02)
+        使用 AutoSaveService 处理退出前的自动保存逻辑。
+        """
         original_close_event = self._stacked_widget.closeEvent
         
         def wrapped_close_event(event):
-            if self._check_unsaved_before_exit():
+            # 修复：使用 AutoSaveService 处理自动保存
+            if self._auto_save_service.on_application_exit(self._project_model):
                 original_close_event(event)
             else:
                 event.ignore()
         
         self._stacked_widget.closeEvent = wrapped_close_event
-    
-    def _check_unsaved_before_exit(self) -> bool:
-        """退出前自动保存未保存项目。
-        
-        Returns:
-            bool: True 表示可以退出
-        """
-        if not self._project_model or not self._project_model.is_dirty:
-            return True
-        
-        self._auto_save_unsaved_project()
-        return True
-    
-    def _auto_save_unsaved_project(self):
-        """自动保存未保存项目。"""
-        import tempfile
-        import random
-        import string
-        import json
-        from datetime import datetime
-        
-        temp_path = self._get_temp_save_path()
-        if self._project_model.save_to_file(temp_path):
-            self._session_logger.log("INFO", f"自动保存未保存项目: {temp_path}")
-            
-            unsaved_projects = self._get_unsaved_projects()
-            unsaved_projects.insert(0, {
-                'path': temp_path,
-                'name': self._project_model.name or "未保存项目",
-                'saved_at': datetime.now().isoformat()
-            })
-            
-            if len(unsaved_projects) > 5:
-                for old_project in unsaved_projects[5:]:
-                    try:
-                        if os.path.exists(old_project.get('path')):
-                            os.remove(old_project.get('path'))
-                    except:
-                        pass
-                unsaved_projects = unsaved_projects[:5]
-            
-            self._save_unsaved_projects(unsaved_projects)
-    
-    def _get_unsaved_projects(self) -> list:
-        """获取未保存项目列表。
-        
-        Returns:
-            list: 未保存项目列表
-        """
-        appdata = os.environ.get('APPDATA', '')
-        config_dir = os.path.join(appdata, 'UIDevTool')
-        os.makedirs(config_dir, exist_ok=True)
-        unsaved_file = os.path.join(config_dir, 'unsaved_projects.json')
-        
-        try:
-            if os.path.exists(unsaved_file):
-                with open(unsaved_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-        except Exception:
-            pass
-        return []
-    
-    def _save_unsaved_projects(self, projects: list):
-        """保存未保存项目列表。
-        
-        Args:
-            projects: 未保存项目列表
-        """
-        appdata = os.environ.get('APPDATA', '')
-        config_dir = os.path.join(appdata, 'UIDevTool')
-        os.makedirs(config_dir, exist_ok=True)
-        unsaved_file = os.path.join(config_dir, 'unsaved_projects.json')
-        
-        try:
-            with open(unsaved_file, 'w', encoding='utf-8') as f:
-                json.dump(projects, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
-    
-    def _get_temp_save_path(self) -> str:
-        """生成临时保存路径。
-        
-        Returns:
-            str: 临时文件路径
-        """
-        import tempfile
-        import random
-        import string
-        
-        random_str = ''.join(random.choices(string.digits, k=8))
-        temp_dir = tempfile.gettempdir()
-        return os.path.join(temp_dir, f"unsaved_project_{random_str}.itexe")
     
     def open_project_file(self, file_path: str):
         """直接打开项目文件。
@@ -287,13 +250,30 @@ class AppManager:
             self._on_open_project(file_path)
         else:
             self._session_logger.log("ERROR", f"项目文件不存在: {file_path}")
-            from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(
                 None,
                 "文件不存在",
                 f"项目文件不存在: {file_path}"
             )
             self._stacked_widget.show()
+    
+    def test_blueprint_auto(self):
+        """自动测试蓝图功能。
+        
+        使用基于信号的自动化测试框架，自动打开示例项目并测试状态机视图。
+        """
+        from PySide6.QtCore import QTimer
+        from tests.auto_test import BlueprintAutoTest
+        
+        self._auto_test = BlueprintAutoTest(self)
+        self._auto_test.test_completed.connect(self._on_auto_test_completed)
+        
+        QTimer.singleShot(500, self._auto_test.start)
+    
+    def _on_auto_test_completed(self, passed: bool, message: str):
+        """自动化测试完成时的回调。"""
+        status = "成功" if passed else "失败"
+        self._session_logger.log("INFO", f"自动化测试{status}: {message}")
     
     def _check_unsaved_changes(self) -> bool:
         """检查是否有未保存的修改，如果有则提示用户。
@@ -304,7 +284,6 @@ class AppManager:
         if not self._project_model or not self._project_model.is_dirty:
             return True
         
-        from PySide6.QtWidgets import QMessageBox
         reply = QMessageBox.question(
             self._stacked_widget,
             "未保存的修改",
@@ -332,7 +311,11 @@ class AppManager:
         self._show_editor()
     
     def _on_open_project(self, file_path: str):
-        """打开项目。"""
+        """打开项目。
+        
+        ## 修复说明 (2026-04-02)
+        使用 TempFileManager 处理未保存项目列表的更新。
+        """
         if not self._check_unsaved_changes():
             return
         
@@ -343,41 +326,16 @@ class AppManager:
                 self._project_model.name,
                 file_path
             )
-            self._remove_from_unsaved_projects(file_path)
+            # 修复：使用 TempFileManager 移除已保存的项目
+            self._temp_file_manager.remove_from_unsaved(file_path)
             self._show_editor()
         else:
             self._session_logger.log("ERROR", f"无法打开项目: {file_path}")
-            from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(
                 self._stacked_widget,
                 "打开失败",
                 f"无法打开项目文件: {file_path}"
             )
-    
-    def _remove_from_unsaved_projects(self, file_path: str):
-        """从未保存项目列表中删除项目。
-        
-        Args:
-            file_path: 项目文件路径
-        """
-        import json
-        
-        normalized_path = os.path.normpath(os.path.abspath(file_path))
-        unsaved_projects = self._get_unsaved_projects()
-        
-        updated_projects = []
-        for project in unsaved_projects:
-            project_path = os.path.normpath(os.path.abspath(project.get('path', '')))
-            if project_path != normalized_path:
-                updated_projects.append(project)
-            else:
-                try:
-                    if os.path.exists(project.get('path')):
-                        os.remove(project.get('path'))
-                except:
-                    pass
-        
-        self._save_unsaved_projects(updated_projects)
     
     def _on_open_template(self, template_data: dict):
         """打开模板。"""
@@ -391,8 +349,6 @@ class AppManager:
     
     def _on_logout(self):
         """注销账户。"""
-        from PySide6.QtWidgets import QMessageBox
-        
         reply = QMessageBox.question(
             self._stacked_widget,
             "注销账户",
@@ -460,7 +416,6 @@ class AppManager:
             return self._app.exec()
         except Exception as e:
             self._session_logger.log("ERROR", f"运行项目失败: {e}")
-            from PySide6.QtWidgets import QMessageBox
             QMessageBox.critical(
                 None,
                 "运行失败",
@@ -483,6 +438,9 @@ def main():
     
     if args.project:
         manager.open_project_file(args.project)
+    
+    if args.test_blueprint:
+        manager.test_blueprint_auto()
     
     sys.exit(manager.run())
 

@@ -434,8 +434,9 @@ class Runner:
                 elif action_type == 'close_program':
                     self._close_all_windows()
                 elif action_type == 'close_window':
-                    for win in list(self._windows.values()):
-                        win.close()
+                    # 修复：只关闭当前窗口，而不是所有窗口
+                    if window:
+                        window.close()
         
         timer = QTimer(progressbar)
         timer.timeout.connect(update_progress)
@@ -463,15 +464,32 @@ class Runner:
                         elif action.get('action_type') == 'close_program':
                             button.clicked.connect(self._close_all_windows)
                         elif action.get('action_type') == 'close_window':
+                            # 修复：确保正确关闭当前窗口
                             button.clicked.connect(window.close)
     
     def _open_event_window(self, window_id: str):
-        """打开事件窗口。"""
+        """打开事件窗口（基于MCP建议的优化版）。
+        
+        修复说明：
+        - 打开新窗口时安全关闭其他窗口，避免窗口堆积
+        - 保持主程序窗口的特殊处理（如果存在）
+        - 添加内存安全机制，防止内存泄漏
+        """
+        # 先安全关闭所有其他窗口（除了主程序窗口）
+        main_window_id = self._project_data.get('main_window_id')
+        for existing_window_id, existing_window in list(self._windows.items()):
+            # 保留主程序窗口，关闭其他窗口
+            if existing_window_id != main_window_id and existing_window_id != window_id:
+                self._safe_close_window(existing_window_id, existing_window)
+        
+        # 如果窗口已经存在，直接显示
         if window_id in self._windows:
             self._windows[window_id].show()
             self._windows[window_id].raise_()
+            self._windows[window_id].activateWindow()
             return
         
+        # 创建新窗口
         windows = self._project_data.get('windows', [])
         win_data = None
         for win in windows:
@@ -485,6 +503,23 @@ class Runner:
                 self._windows[window_id] = window
                 self._setup_actions(window, win_data)
                 window.show()
+                window.activateWindow()
+    
+    def _safe_close_window(self, window_id: str, window):
+        """安全关闭窗口，防止内存泄漏（基于MCP建议）。"""
+        try:
+            # 断开所有信号连接
+            window.disconnect()
+        except:
+            pass
+        
+        # 设置删除标记，确保C++对象被释放
+        window.setAttribute(Qt.WA_DeleteOnClose, True)
+        window.close()
+        window.deleteLater()
+        
+        # 从字典中移除已关闭的窗口
+        self._windows.pop(window_id, None)
     
     def _close_all_windows(self):
         """关闭所有窗口。"""

@@ -1,0 +1,223 @@
+{
+  "name": "年会抽奖示例",
+  "windows": [
+    {
+      "id": "main001",
+      "name": "抽奖主界面",
+      "window_type": "main",
+      "width": 800,
+      "height": 600,
+      "title": "年会抽奖系统",
+      "components": [
+        "cont_main",
+        "lbl_title",
+        "carousel_1",
+        "btn_draw",
+        "lbl_result"
+      ],
+      "trigger_button_id": null
+    }
+  ],
+  "components": [
+    {
+      "id": "cont_main",
+      "comp_type": "container",
+      "name": "主容器",
+      "x": 150,
+      "y": 50,
+      "width": 500,
+      "height": 500,
+      "text": "年会抽奖",
+      "parent_id": "",
+      "style": {
+        "background_color": "#1a1a2e",
+        "text_color": "#ffffff",
+        "border_color": "#16213e",
+        "border_width": 2,
+        "border_radius": 15,
+        "font_family": "Microsoft YaHei",
+        "font_size": 14,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "children": [],
+      "position_mode": "center",
+      "layout": "none",
+      "padding": 20,
+      "spacing": 15
+    },
+    {
+      "id": "lbl_title",
+      "comp_type": "label",
+      "name": "标题",
+      "x": 250,
+      "y": 80,
+      "width": 300,
+      "height": 50,
+      "text": "🎉 年会抽奖系统 🎉",
+      "parent_id": "cont_main",
+      "style": {
+        "background_color": "transparent",
+        "text_color": "#ffd700",
+        "border_color": "#cccccc",
+        "border_width": 0,
+        "border_radius": 5,
+        "font_family": "Microsoft YaHei",
+        "font_size": 24,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "alignment": "center",
+      "word_wrap": false
+    },
+    {
+      "id": "carousel_1",
+      "comp_type": "image_carousel",
+      "name": "候选人轮播",
+      "x": 200,
+      "y": 150,
+      "width": 400,
+      "height": 250,
+      "text": "",
+      "parent_id": "cont_main",
+      "style": {
+        "background_color": "#0f3460",
+        "text_color": "#ffffff",
+        "border_color": "#e94560",
+        "border_width": 3,
+        "border_radius": 10,
+        "font_family": "Microsoft YaHei",
+        "font_size": 12,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "images": [
+        "张三.png",
+        "李四.png",
+        "王五.png",
+        "赵六.png",
+        "钱七.png"
+      ],
+      "image_labels": [
+        "张三",
+        "李四", 
+        "王五",
+        "赵六",
+        "钱七"
+      ],
+      "current_index": 0,
+      "interval": 3000,
+      "auto_play": false,
+      "loop": true
+    },
+    {
+      "id": "btn_draw",
+      "comp_type": "button",
+      "name": "抽奖按钮",
+      "x": 275,
+      "y": 420,
+      "width": 250,
+      "height": 60,
+      "text": "🎲 开始抽奖!",
+      "parent_id": "cont_main",
+      "style": {
+        "background_color": "#e94560",
+        "text_color": "#ffffff",
+        "border_color": "#ff6b6b",
+        "border_width": 2,
+        "border_radius": 30,
+        "font_family": "Microsoft YaHei",
+        "font_size": 18,
+        "font_bold": true
+      },
+      "action": {
+        "action_type": "lottery_animation",
+        "params": {
+          "target_component_id": "carousel_1",
+          "action_params": {
+            "duration_ms": 3000
+          }
+        },
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "target_window_id": "",
+      "branch_name": "",
+      "open_mode": "new_window",
+      "is_default": false,
+      "is_cancel": false
+    },
+    {
+      "id": "lbl_result",
+      "comp_type": "label",
+      "name": "结果提示",
+      "x": 200,
+      "y": 490,
+      "width": 400,
+      "height": 40,
+      "text": "点击按钮开始抽奖!",
+      "parent_id": "cont_main",
+      "style": {
+        "background_color": "transparent",
+        "text_color": "#00ff88",
+        "border_color": "#cccccc",
+        "border_width": 0,
+        "border_radius": 5,
+        "font_family": "Microsoft YaHei",
+        "font_size": 14,
+        "font_bold": false
+      },
+      "action": {
+        "action_type": "none",
+        "params": {},
+        "blockly_xml": "",
+        "python_code": ""
+      },
+      "visible": true,
+      "enabled": true,
+      "custom_props": {},
+      "alignment": "center",
+      "word_wrap": false
+    }
+  ],
+  "linkages": [
+    {
+      "source_component": "carousel_1",
+      "source_event": "lottery_finished",
+      "target_component": "lbl_result",
+      "target_action": "set_text",
+      "params": {
+        "text_template": "中奖者: {winner}"
+      }
+    }
+  ],
+  "main_window_id": "main001",
+  "current_window_id": "main001"
+}

@@ -22,16 +22,7 @@ from models import (
     ProjectModel, ComponentModel, ButtonModel, 
     WindowModel, WindowType, DEFAULT_ACTIONS
 )
-
-
-class TreeMode(Enum):
-    """树显示模式枚举。
-    
-    MULTI_BRANCH: 多叉树模式 - 一个节点下可以有多个子节点（子集复集结构）
-    BINARY: 二叉树模式 - 每个节点严格一分为二，形成树枝状结构
-    """
-    MULTI_BRANCH = "multi_branch"
-    BINARY = "binary"
+from models.components import ProgressBarModel
 
 
 class LogicTreeView(QWidget):
@@ -44,23 +35,57 @@ class LogicTreeView(QWidget):
     
     支持滚轮缩放功能，用户可以通过滚轮放大/缩小树的显示。
     
-    Signals:
-        window_selected: 选中窗口时发射 (window_id)
-        component_selected: 选中组件时发射 (comp_id)
-        create_event_requested: 请求为按钮创建事件时发射 (button_id)
-        delete_component_requested: 请求删除组件时发射 (comp_id)
-        delete_window_requested: 请求删除窗口时发射 (window_id)
-        rename_requested: 请求重命名时发射 (item_id, new_name, is_window)
-    """
+    ## 信号说明
+    
+    ### 输出信号（本组件发射）
+    - window_selected(str): 选中窗口时发射
+参数为 window_id
+        - 接收者：MainWindow._on_logic_window_selected
+        - 用途：切换当前编辑窗口
+显示该窗口的组件
+    
+    - component_selected(str): 选中组件时发射，参数为 comp_id
+        - 接收者：MainWindow._on_tree_component_selected
+        - 用途：在画布上选中对应组件
+    
+    - components_selected(list): 多选组件选中时发射，参数为 comp_ids
+        - 接收者：MainWindow._on_tree_components_selected
+        - 用途：批量操作多个组件
+    
+    - create_event_requested(str): 请求为按钮创建事件时发射，参数为 button_id
+        - 接收者：MainWindow._on_create_event_requested
+        - 用途：为按钮创建事件分支窗口
+    
+    - delete_component_requested(str): 请求删除组件时发射，参数为 comp_id
+        - 接收者：MainWindow.delete_component
+        - 用途：删除指定组件
+    
+    - delete_window_requested(str): 请求删除窗口时发射，参数为 window_id
+        - 接收者：MainWindow._on_delete_window
+        - 用途：删除指定窗口及其组件
+    
+    - rename_requested(str, str, bool): 请求重命名时发射，参数为 item_id, new_name, is_window
+        - 接收者：MainWindow._on_rename_item
+        - 用途：重命名窗口或组件
+    
+    - open_state_machine_requested(): 请求打开状态机视图时发射
+        - 接收者：MainWindow._toggle_state_machine_panel
+        - 用途：打开状态机视图面板
+    
+    ### 输入信号（本组件接收）
+    - set_project_model(model): 设置项目模型，由 MainWindow 调用
+        - 用途：初始化逻辑树数据，连接项目信号
+ """
     
     # ==================== 信号定义（出口） ====================
-    window_selected = Signal(str)           # 【信号出口】窗口选中，参数：window_id 窗口ID
-    component_selected = Signal(str)        # 【信号出口】组件选中，参数：comp_id 组件ID
-    components_selected = Signal(list)      # 【信号出口】多选组件选中，参数：comp_ids 组件ID列表
-    create_event_requested = Signal(str)    # 【信号出口】创建事件请求，参数：button_id 按钮ID
-    delete_component_requested = Signal(str) # 【信号出口】删除组件请求，参数：comp_id 组件ID
-    delete_window_requested = Signal(str)   # 【信号出口】删除窗口请求，参数：window_id 窗口ID
-    rename_requested = Signal(str, str, bool) # 【信号出口】重命名请求，参数：item_id 项目ID, new_name 新名称, is_window 是否为窗口
+    window_selected = Signal(str)
+    component_selected = Signal(str)
+    components_selected = Signal(list)
+    create_event_requested = Signal(str)
+    delete_component_requested = Signal(str)
+    delete_window_requested = Signal(str)
+    rename_requested = Signal(str, str, bool)
+    open_state_machine_requested = Signal()
     
     NODE_TYPE_WINDOW = "window"
     NODE_TYPE_COMPONENT = "component"
@@ -81,9 +106,6 @@ class LogicTreeView(QWidget):
         self._node_map: dict = {}
         self._zoom_level: float = 1.0
         self._font_size: int = self.DEFAULT_FONT_SIZE
-        
-        # 树显示模式：默认为多叉树模式（子集复集结构）
-        self._tree_mode: TreeMode = TreeMode.MULTI_BRANCH
         
         self._init_ui()
     
@@ -117,6 +139,9 @@ class LogicTreeView(QWidget):
         self._tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
         self._tree.setAnimated(True)
         self._tree.setExpandsOnDoubleClick(False)
+        self._tree.setHorizontalScrollMode(QTreeWidget.ScrollMode.ScrollPerPixel)
+        self._tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self._tree.setVerticalScrollMode(QTreeWidget.ScrollMode.ScrollPerPixel)
         self._tree.currentItemChanged.connect(self._on_current_item_changed)
         self._tree.itemDoubleClicked.connect(self._on_item_double_clicked)
         self._tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -145,26 +170,23 @@ class LogicTreeView(QWidget):
         """)
         bottom_bar.addWidget(self._btn_hint)
         
-        self._btn_switch_mode = QPushButton("🌳")
-        self._btn_switch_mode.setFixedSize(28, 28)
-        self._btn_switch_mode.setToolTip("切换树模式：多叉树/二叉树")
-        self._btn_switch_mode.clicked.connect(self._toggle_tree_mode)
-        self._btn_switch_mode.setStyleSheet("""
+        self._btn_state_machine = QPushButton("📊")
+        self._btn_state_machine.setFixedSize(28, 28)
+        self._btn_state_machine.setToolTip("打开状态机视图")
+        self._btn_state_machine.clicked.connect(self._open_state_machine)
+        self._btn_state_machine.setStyleSheet("""
             QPushButton {
-                background-color: #e8f5e9;
-                border: 1px solid #4caf50;
+                background-color: #e3f2fd;
+                border: 1px solid #2196f3;
                 border-radius: 14px;
                 font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #c8e6c9;
+                background-color: #bbdefb;
             }
         """)
-        bottom_bar.addWidget(self._btn_switch_mode)
-        
-        self._mode_label = QLabel("多叉树")
-        self._mode_label.setStyleSheet("color: #0078d7; font-size: 10px; font-weight: bold;")
-        bottom_bar.addWidget(self._mode_label)
+        self._btn_state_machine.setParent(None)
+        bottom_bar.addWidget(self._btn_state_machine)
         
         bottom_bar.addStretch()
         
@@ -233,11 +255,7 @@ class LogicTreeView(QWidget):
         if not self._project_model:
             return
         
-        # 根据树模式选择渲染方法
-        if self._tree_mode == TreeMode.MULTI_BRANCH:
-            self._refresh_tree_multi_branch()
-        else:
-            self._refresh_tree_binary()
+        self._refresh_tree_multi_branch()
     
     def _refresh_tree_multi_branch(self):
         """多叉树模式刷新：一个节点下可以有多个子节点。
@@ -251,125 +269,6 @@ class LogicTreeView(QWidget):
         for window in self._project_model.get_all_windows():
             if window.is_event and window.trigger_button_id:
                 self._add_window_node(window)
-    
-    def _refresh_tree_binary(self):
-        """二叉树模式刷新：每个节点严格一分为二。
-        
-        从根节点开始，每次只分两个分支，形成树枝状结构。
-        适合展示决策流程和条件分支。
-        """
-        main_window = self._project_model.get_main_window()
-        if not main_window:
-            return
-        
-        # 创建根节点
-        root_item = QTreeWidgetItem(self._tree)
-        root_item.setText(0, f"🏠 {main_window.name} (根节点)")
-        root_item.setData(0, Qt.ItemDataRole.UserRole, {
-            "type": self.NODE_TYPE_WINDOW,
-            "id": main_window.id
-        })
-        font = root_item.font(0)
-        font.setBold(True)
-        root_item.setFont(0, font)
-        self._node_map[main_window.id] = root_item
-        
-        # 获取主窗口的按钮，按二叉树结构组织
-        components = self._project_model.get_components_for_window(main_window.id)
-        buttons = [c for c in components if c.type == "button"]
-        
-        # 递归构建二叉树
-        self._build_binary_tree(buttons, root_item, 0)
-        
-        self._tree.expandAll()
-    
-    def _build_binary_tree(self, buttons: list, parent_item: QTreeWidgetItem, depth: int):
-        """递归构建二叉树结构。
-        
-        每次只取两个按钮作为当前节点的左右分支，
-        如果按钮数量超过2个，则继续向下分层。
-        
-        Args:
-            buttons: 当前层级的按钮列表
-            parent_item: 父节点
-            depth: 当前深度（用于控制层级显示）
-        """
-        if not buttons:
-            return
-        
-        # 二叉树：每次只处理两个分支
-        if len(buttons) >= 1:
-            # 左分支
-            self._add_binary_branch(buttons[0], parent_item, "左", depth)
-        
-        if len(buttons) >= 2:
-            # 右分支
-            self._add_binary_branch(buttons[1], parent_item, "右", depth)
-        
-        # 如果还有更多按钮，创建"更多..."节点继续分叉
-        if len(buttons) > 2:
-            remaining = buttons[2:]
-            
-            # 创建一个虚拟的"更多分支"节点
-            more_item = QTreeWidgetItem(parent_item)
-            more_item.setText(0, f"📂 更多分支 ({len(remaining)}个)")
-            more_item.setData(0, Qt.ItemDataRole.UserRole, {
-                "type": "more_branches",
-                "count": len(remaining)
-            })
-            more_item.setForeground(0, Qt.GlobalColor.gray)
-            
-            # 递归处理剩余按钮
-            self._build_binary_tree(remaining, more_item, depth + 1)
-    
-    def _add_binary_branch(self, button: ButtonModel, parent_item: QTreeWidgetItem, 
-                           branch_label: str, depth: int):
-        """添加二叉树的一个分支节点。
-        
-        Args:
-            button: 按钮模型
-            parent_item: 父节点
-            branch_label: 分支标签（"左"或"右"）
-            depth: 当前深度
-        """
-        if button.id in self._node_map:
-            return
-        
-        # 创建分支节点
-        branch_item = QTreeWidgetItem(parent_item)
-        
-        # 显示分支标签和按钮信息
-        indent = "  " * depth
-        if button.target_window_id:
-            target_window = self._project_model.get_window(button.target_window_id)
-            target_name = target_window.name if target_window else "未知窗口"
-            branch_item.setText(0, f"{indent}├─ [{branch_label}] 🔘 {button.text} → {target_name}")
-        else:
-            branch_item.setText(0, f"{indent}├─ [{branch_label}] 🔘 {button.text}")
-        
-        branch_item.setData(0, Qt.ItemDataRole.UserRole, {
-            "type": self.NODE_TYPE_COMPONENT,
-            "id": button.id
-        })
-        self._node_map[button.id] = branch_item
-        
-        # 如果按钮有目标窗口，递归添加该窗口的分支
-        if button.target_window_id:
-            target_window = self._project_model.get_window(button.target_window_id)
-            if target_window:
-                # 添加目标窗口节点
-                window_item = QTreeWidgetItem(branch_item)
-                window_item.setText(0, f"📄 {target_window.name}")
-                window_item.setData(0, Qt.ItemDataRole.UserRole, {
-                    "type": self.NODE_TYPE_WINDOW,
-                    "id": target_window.id
-                })
-                self._node_map[target_window.id] = window_item
-                
-                # 递归处理目标窗口中的按钮
-                target_components = self._project_model.get_components_for_window(target_window.id)
-                target_buttons = [c for c in target_components if c.type == "button"]
-                self._build_binary_tree(target_buttons, window_item, depth + 1)
     
     def _add_window_node(self, window: WindowModel, parent_item: Optional[QTreeWidgetItem] = None):
         """添加窗口节点。
@@ -426,8 +325,11 @@ class LogicTreeView(QWidget):
         
         item = QTreeWidgetItem(parent_item)
         
+        # 显示组件文本（修复：进度条也显示分支名称）
         if isinstance(comp, ButtonModel) and comp.has_branch:
             text = f"{icon} {comp.text} → {comp.branch_name}"
+        elif isinstance(comp, ProgressBarModel) and comp.has_branch:
+            text = f"{icon} {comp.text or comp.name} → {comp.branch_name or '完成'}"
         else:
             text = f"{icon} {comp.text or comp.name}"
         
@@ -440,7 +342,14 @@ class LogicTreeView(QWidget):
         
         self._node_map[comp.id] = item
         
+        # 处理按钮的分支
         if isinstance(comp, ButtonModel) and comp.target_window_id:
+            target_window = self._project_model.get_window(comp.target_window_id)
+            if target_window:
+                self._add_window_node(target_window, item)
+        
+        # 处理进度条的分支（修复：进度条完成后跳转到目标窗口）
+        if isinstance(comp, ProgressBarModel) and comp.target_window_id:
             target_window = self._project_model.get_window(comp.target_window_id)
             if target_window:
                 self._add_window_node(target_window, item)
@@ -638,6 +547,7 @@ class LogicTreeView(QWidget):
         rename_action.triggered.connect(lambda: self._on_rename_component(comp_id))
         menu.addAction(rename_action)
         
+        # 按钮的右键菜单
         if isinstance(comp, ButtonModel):
             menu.addSeparator()
             
@@ -649,6 +559,19 @@ class LogicTreeView(QWidget):
                 goto_event_action = QAction("🔗 跳转到事件", self)
                 goto_event_action.triggered.connect(lambda: self._goto_window(comp.target_window_id))
                 menu.addAction(goto_event_action)
+        
+        # 进度条的右键菜单（修复：添加跳转到事件选项）
+        if isinstance(comp, ProgressBarModel):
+            menu.addSeparator()
+            
+            if comp.target_window_id:
+                goto_event_action = QAction("🔗 跳转到事件", self)
+                goto_event_action.triggered.connect(lambda: self._goto_window(comp.target_window_id))
+                menu.addAction(goto_event_action)
+            else:
+                create_event_action = QAction("➕ 创建事件分支", self)
+                create_event_action.triggered.connect(lambda: self.create_event_requested.emit(comp_id))
+                menu.addAction(create_event_action)
         
         menu.addSeparator()
         
@@ -872,46 +795,9 @@ class LogicTreeView(QWidget):
         """获取当前缩放级别。"""
         return self._zoom_level
     
-    def _toggle_tree_mode(self):
-        """切换树显示模式。
-        
-        在多叉树模式和二叉树模式之间切换：
-        - 多叉树：一个节点下可以有多个子节点（子集复集结构）
-        - 二叉树：每个节点严格一分为二，形成树枝状结构
-        """
-        if self._tree_mode == TreeMode.MULTI_BRANCH:
-            self._tree_mode = TreeMode.BINARY
-            self._mode_label.setText("二叉树")
-            self._btn_switch_mode.setText("🌿")
-        else:
-            self._tree_mode = TreeMode.MULTI_BRANCH
-            self._mode_label.setText("多叉树")
-            self._btn_switch_mode.setText("🌳")
-        
-        # 刷新树以应用新模式
-        self._refresh_tree()
-    
-    def set_tree_mode(self, mode: TreeMode):
-        """设置树显示模式。
-        
-        Args:
-            mode: 树显示模式（TreeMode.MULTI_BRANCH 或 TreeMode.BINARY）
-        """
-        if self._tree_mode != mode:
-            self._tree_mode = mode
-            
-            if mode == TreeMode.BINARY:
-                self._mode_label.setText("二叉树")
-                self._btn_switch_mode.setText("🌿")
-            else:
-                self._mode_label.setText("多叉树")
-                self._btn_switch_mode.setText("🌳")
-            
-            self._refresh_tree()
-    
-    @property
-    def tree_mode(self) -> TreeMode:
-        """获取当前树显示模式。"""
-        return self._tree_mode
+    def _open_state_machine(self):
+        """打开状态机视图。"""
+        self.open_state_machine_requested.emit()
+
 
 

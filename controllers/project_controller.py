@@ -1,6 +1,14 @@
 """项目控制器模块。
 
 本模块包含项目控制器，负责处理项目的保存、加载、导出等操作。
+
+## 架构说明
+
+本控制器采用渐进式迁移策略，同时支持：
+1. 旧的信号连接方式（保持兼容）
+2. 新的EventBus + Presenter架构
+
+迁移完成后，旧代码将逐步被移除。
 """
 
 import json
@@ -12,6 +20,8 @@ from models import ProjectModel, ComponentModel, create_component
 from views import MainWindow
 from utils.undo_manager import UndoManager
 from utils.settings import app_settings
+
+from presenters import CanvasPresenter
 
 
 def debug_log(category: str, message: str, force: bool = False):
@@ -53,8 +63,24 @@ class ProjectController:
         self._clipboard: Optional[ComponentModel] = None
         self._runner = None
         
+        self._canvas_presenter: Optional[CanvasPresenter] = None
+        
         self._connect_signals()
+        self._init_canvas_presenter()
         self._load_project_to_view()
+    
+    def _init_canvas_presenter(self):
+        """初始化画布Presenter。
+        
+        创建CanvasPresenter实例，管理画布视图与组件模型的交互。
+        Presenter通过EventBus实现模块间解耦通信。
+        """
+        if hasattr(self.window, 'designer_view') and self.window.designer_view:
+            self._canvas_presenter = CanvasPresenter(
+                canvas_view=self.window.designer_view,
+                project_model=self.project_model
+            )
+            debug_log('component', f"[架构迁移] CanvasPresenter已初始化")
     
     def _connect_signals(self):
         """连接信号。"""

@@ -8,6 +8,44 @@ import json
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from PySide6.QtCore import QObject, Signal
+from enum import Enum
+
+
+class ActionType(Enum):
+    """动作类型枚举。
+    
+    定义组件可执行的所有动作类型。
+    
+    Attributes:
+        NONE: 无动作
+        CLOSE_PROGRAM: 关闭程序
+        OPEN_WINDOW: 打开窗口
+        SWITCH_WINDOW: 切换窗口
+        RANDOM_IMAGE: 随机选图
+        NEXT_IMAGE: 下一张图片
+        PREV_IMAGE: 上一张图片
+        START_CAROUSEL: 开始轮播
+        STOP_CAROUSEL: 停止轮播
+        LOTTERY_ANIMATION: 抽奖动画
+        SET_TEXT: 设置文本
+        SHOW_COMPONENT: 显示组件
+        HIDE_COMPONENT: 隐藏组件
+        EXECUTE_PYTHON: 执行Python代码
+    """
+    NONE = "none"
+    CLOSE_PROGRAM = "close_program"
+    OPEN_WINDOW = "open_window"
+    SWITCH_WINDOW = "switch_window"
+    RANDOM_IMAGE = "random_image"
+    NEXT_IMAGE = "next_image"
+    PREV_IMAGE = "prev_image"
+    START_CAROUSEL = "start_carousel"
+    STOP_CAROUSEL = "stop_carousel"
+    LOTTERY_ANIMATION = "lottery_animation"
+    SET_TEXT = "set_text"
+    SHOW_COMPONENT = "show_component"
+    HIDE_COMPONENT = "hide_component"
+    EXECUTE_PYTHON = "execute_python"
 
 
 @dataclass
@@ -17,8 +55,8 @@ class ActionConfig:
     定义组件被触发时执行的操作，如按钮点击后执行的动作。
     
     Attributes:
-        action_type: 动作类型，如 "none", "close_program", "open_event" 等
-        params: 动作参数字典，根据 action_type 不同而不同
+        action_type: 动作类型，如 "none", "close_program", "random_image" 等
+        params: 动作参数字典，包含目标组件ID和动作参数
         blockly_xml: Blockly 积木块 XML 代码（预留）
         python_code: Python 脚本代码（预留）
     """
@@ -26,6 +64,30 @@ class ActionConfig:
     params: Dict[str, Any] = field(default_factory=dict)
     blockly_xml: str = ""
     python_code: str = ""
+    
+    def get_target_component_id(self) -> str:
+        """获取目标组件ID。
+        
+        Returns:
+            目标组件ID，如果未指定则返回空字符串
+        """
+        return self.params.get("target_component_id", "")
+    
+    def get_target_window_id(self) -> str:
+        """获取目标窗口ID。
+        
+        Returns:
+            目标窗口ID，如果未指定则返回空字符串
+        """
+        return self.params.get("target_window_id", "")
+    
+    def get_action_params(self) -> Dict[str, Any]:
+        """获取动作参数。
+        
+        Returns:
+            动作参数字典
+        """
+        return self.params.get("action_params", {})
 
 
 @dataclass
@@ -358,6 +420,7 @@ class ProjectModel(QObject):
         self._main_window_id: Optional[str] = None
         self._file_path: Optional[str] = None
         self._dirty: bool = False
+        self._linkages: List[Dict[str, Any]] = []
         
         self._init_main_window()
 
@@ -488,6 +551,17 @@ class ProjectModel(QObject):
     def get_all_windows(self) -> List[Any]:
         return list(self._windows.values())
 
+    @property
+    def linkages(self) -> List[Dict[str, Any]]:
+        """获取组件联动配置列表。"""
+        return self._linkages
+    
+    @linkages.setter
+    def linkages(self, value: List[Dict[str, Any]]):
+        """设置组件联动配置列表。"""
+        self._linkages = value or []
+        self.mark_dirty()
+
     def get_main_window(self):
         if self._main_window_id:
             return self._windows.get(self._main_window_id)
@@ -550,6 +624,7 @@ class ProjectModel(QObject):
             'components': [c.to_dict() for c in self._components.values()],
             'main_window_id': self._main_window_id,
             'current_window_id': self._current_window_id,
+            'linkages': self._linkages,
         }
 
     def from_dict(self, data: Dict[str, Any]):
@@ -567,6 +642,7 @@ class ProjectModel(QObject):
         
         self._main_window_id = data.get('main_window_id')
         self._current_window_id = data.get('current_window_id')
+        self._linkages = data.get('linkages', [])
         
         if not self._windows:
             self._init_main_window()

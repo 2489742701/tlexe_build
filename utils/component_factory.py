@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QListWidget, QGroupBox, QProgressBar
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QFontMetrics
 
 from models.base import ComponentModel, StyleConfig
 from models.components import (
@@ -124,6 +124,93 @@ class ComponentFactory:
     TITLE_BAR_HEIGHT = 28
     
     @staticmethod
+    def _detect_text_squeeze(model: LabelModel) -> tuple[bool, tuple[int, int]]:
+        """检测文本是否被挤压（基于MCP建议的优化版）。
+        
+        Args:
+            model: 标签模型
+            
+        Returns:
+            tuple[bool, tuple[int, int]]: (是否被挤压, (文本所需宽度, 文本所需高度))
+        """
+        # 防御性检查：空文本或无效尺寸
+        if not model.text or model.width <= 0 or model.height <= 0:
+            return False, (0, 0)
+        
+        # 限制文本长度，防止性能问题（基于MCP建议）
+        MAX_TEXT_LENGTH = 10000
+        text = model.text[:MAX_TEXT_LENGTH] if len(model.text) > MAX_TEXT_LENGTH else model.text
+        
+        try:
+            # 创建字体对象
+            font = QFont(model.style.font_family, model.style.font_size)
+            font.setBold(model.style.font_bold)
+            
+            # 创建字体度量对象
+            font_metrics = QFontMetrics(font)
+            
+            # 计算文本所需尺寸（基于像素宽度而非字符数，解决多语言问题）
+            padding = 8  # 基础边距
+            available_width = max(5, model.width - padding * 2)  # 最小5px防止换行爆炸
+            
+            if model.word_wrap:
+                # 启用自动换行时，计算多行文本尺寸
+                text_rect = font_metrics.boundingRect(
+                    0, 0, available_width, 0,
+                    Qt.TextWordWrap,
+                    text
+                )
+            else:
+                # 单行文本，计算单行尺寸
+                text_rect = font_metrics.boundingRect(text)
+            
+            # 基于像素宽度的边距计算（解决多语言问题）
+            text_pixel_width = text_rect.width()
+            padding = max(8, min(16, int(text_pixel_width * 0.1)))  # 10%像素宽度，限制范围
+            
+            text_width = text_rect.width() + padding * 2
+            text_height = text_rect.height() + padding * 2
+            
+            # 修正的挤压检测逻辑（移除错误的height < 0.8条件）
+            is_squeezed = (
+                text_height > model.height * 1.05 or  # 高度不足（105%阈值）
+                text_width > model.width * 0.95       # 宽度不足（95%阈值）
+            )
+            
+            return is_squeezed, (text_width, text_height)
+            
+        except Exception as e:
+            # 异常处理：字体创建失败等情况
+            print(f"文本挤压检测异常: {e}")
+            return False, (0, 0)
+    
+    @staticmethod
+    def _auto_adjust_label_size(model: LabelModel, text_width: int, text_height: int) -> LabelModel:
+        """自动调整标签尺寸以避免文本挤压（基于MCP建议的直接调整版）。
+        
+        Args:
+            model: 标签模型
+            text_width: 文本所需宽度
+            text_height: 文本所需高度
+            
+        Returns:
+            调整后的标签模型
+        """
+        # 直接调整到所需尺寸（基于MCP建议，避免渐进式调整的低效）
+        min_width = 50
+        min_height = 20
+        
+        # 计算新尺寸，确保满足最小尺寸要求
+        new_width = max(text_width, min_width)
+        new_height = max(text_height, min_height)
+        
+        # 应用新尺寸
+        model.width = new_width
+        model.height = new_height
+        
+        return model
+    
+    @staticmethod
     def create_widget(model: ComponentModel) -> Optional[QWidget]:
         """根据模型创建对应的 Qt 控件（用于运行时）。
         
@@ -181,7 +268,6 @@ class ComponentFactory:
         """创建标签控件。"""
         label = QLabel()
         label.setText(model.text or "文本")
-        label.resize(model.width, model.height)
         
         alignment_map = {
             'left': Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
@@ -192,6 +278,22 @@ class ComponentFactory:
         }
         label.setAlignment(alignment_map.get(model.alignment, Qt.AlignmentFlag.AlignCenter))
         label.setWordWrap(model.word_wrap)
+        
+        # 自动挤压检测和修复（当auto_size为false时）
+        if not model.auto_size and model.text:
+            is_squeezed, (text_width, text_height) = ComponentFactory._detect_text_squeeze(model)
+            if is_squeezed:
+                # 自动调整尺寸以避免文本挤压
+                model = ComponentFactory._auto_adjust_label_size(model, text_width, text_height)
+        
+        # 自动调整大小：根据文本内容计算合适的大小
+        if model.auto_size:
+            label.adjustSize()
+            # 更新模型的宽高
+            model.width = label.width()
+            model.height = label.height()
+        else:
+            label.resize(model.width, model.height)
         
         extra = ""
         if model.style.background_color == "transparent":

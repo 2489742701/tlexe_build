@@ -173,6 +173,8 @@ class ComponentGraphicsItem(QGraphicsObject):
         return path
     
     def _on_model_changed(self):
+        if self._dragging or self._resizing:
+            return
         if self.pos().x() != self._model.x or self.pos().y() != self._model.y:
             self.setPos(QPointF(self._model.x, self._model.y))
         self.update()
@@ -661,8 +663,6 @@ class ComponentGraphicsItem(QGraphicsObject):
                 self.scene().update()
             event.accept()
         elif self._dragging:
-            self._dragging = False
-            
             print(f"\n========== 画布组件释放调试 ==========")
             print(f"组件ID: {self.component_id}")
             print(f"实际移动: {self._has_actually_moved}")
@@ -698,6 +698,7 @@ class ComponentGraphicsItem(QGraphicsObject):
             
             print("========================================\n")
             
+            self._dragging = False
             self._selected_items_start_pos.clear()
             self._has_actually_moved = False
             event.accept()
@@ -705,7 +706,12 @@ class ComponentGraphicsItem(QGraphicsObject):
             super().mouseReleaseEvent(event)
     
     def _check_and_update_parent(self):
-        """检查并更新父容器关系。"""
+        """检查并更新父容器关系。
+        
+        当组件被拖动时，检查是否进入或离开容器。
+        如果父容器关系发生变化，建立或断开Qt的父子关系，
+        使子组件能够跟随父容器移动。
+        """
         if self._model.type == "container":
             return
         
@@ -721,10 +727,6 @@ class ComponentGraphicsItem(QGraphicsObject):
             if isinstance(item, ComponentGraphicsItem) and item != self:
                 if item.model.type == "container":
                     container_rect = item.sceneBoundingRect()
-                    title_bar_rect = QRectF(
-                        container_rect.left(), container_rect.top(),
-                        container_rect.width(), self.TITLE_BAR_HEIGHT
-                    )
                     
                     content_rect = QRectF(
                         container_rect.left(), container_rect.top() + self.TITLE_BAR_HEIGHT,
@@ -743,8 +745,48 @@ class ComponentGraphicsItem(QGraphicsObject):
             new_parent_id = ""
         
         if new_parent_id != self._model.parent_id:
+            if new_parent_id:
+                self._attach_to_parent(best_container)
+            else:
+                self._detach_from_parent()
+            
             self._model.parent_id = new_parent_id
             self.parent_changed.emit(self.component_id, new_parent_id)
+    
+    def _attach_to_parent(self, parent_item: 'ComponentGraphicsItem'):
+        """将组件挂载到父容器上。
+        
+        建立Qt的父子关系，使子组件能够跟随父容器移动。
+        同时将场景坐标转换为父容器的局部坐标。
+        
+        Args:
+            parent_item: 父容器组件
+        """
+        if not parent_item:
+            return
+        
+        scene_pos = self.scenePos()
+        
+        local_pos = parent_item.mapFromScene(scene_pos)
+        
+        self.setParentItem(parent_item)
+        
+        self.setPos(local_pos)
+    
+    def _detach_from_parent(self):
+        """将组件从父容器中分离。
+        
+        断开Qt的父子关系，同时将局部坐标转换为场景坐标，
+        确保组件在视觉上保持在原来的位置。
+        """
+        if self.parentItem() is None:
+            return
+        
+        scene_pos = self.scenePos()
+        
+        self.setParentItem(None)
+        
+        self.setPos(scene_pos)
     
     def _do_resize(self, scene_pos: QPointF):
         """执行调整大小操作。"""
@@ -934,13 +976,27 @@ class DesignerView(QGraphicsView):
     - 居中显示桌面区域
     - 组件选中信号
     
-    Signals:
-        zoom_changed: 缩放比例改变时发射 (zoom_factor)
-        component_selected: 组件选中时发射 (comp_id)
+    ## 信号说明
+    
+    ### 视图事件信号（供Presenter订阅）
+    - zoom_changed(float): 缩放比例改变
+    - component_selected(str): 组件被选中
+    - component_deselected(str): 组件取消选中
+    - component_dragged(str, float, float): 组件拖拽中（id, delta_x, delta_y）
+    - component_moved(str, int, int): 组件移动完成（id, x, y）
+    - component_resized(str, int, int): 组件大小改变（id, width, height）
+    - canvas_clicked(float, float): 点击画布空白区域
+    - multi_select_finished(list): 框选完成（选中的组件ID列表）
     """
     
     zoom_changed = Signal(float)
     component_selected = Signal(str)
+    component_deselected = Signal(str)
+    component_dragged = Signal(str, float, float)
+    component_moved = Signal(str, int, int)
+    component_resized = Signal(str, int, int)
+    canvas_clicked = Signal(float, float)
+    multi_select_finished = Signal(list)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -958,12 +1014,13 @@ class DesignerView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         
         self._zoom_factor = 1.0
         self._min_zoom = 0.1
         self._max_zoom = 4.0
+        self._user_scale = None
         
         self._items: dict[str, ComponentGraphicsItem] = {}
         
@@ -1014,7 +1071,21 @@ class DesignerView(QGraphicsView):
     
     def resizeEvent(self, event):
         super().resizeEvent(event)
+    
+    def reset_to_fit_window(self):
+        """重置为自动适应窗口模式。"""
         self._fit_desktop_to_view()
+    
+    def set_user_scale(self, scale: float):
+        """设置用户手动缩放比例。"""
+        self._user_scale = scale
+        self._zoom_factor = scale
+        self.resetTransform()
+        self.scale(scale, scale)
+        desktop_width = self._scene._desktop_width
+        desktop_height = self._scene._desktop_height
+        self.centerOn(desktop_width / 2, desktop_height / 2)
+        self.zoom_changed.emit(scale)
     
     def add_component_item(self, model: ComponentModel) -> ComponentGraphicsItem:
         if model.x == 0 and model.y == 0:
@@ -1135,12 +1206,13 @@ class DesignerView(QGraphicsView):
         self._zoom(0.8)
     
     def zoom_reset(self):
-        self._fit_desktop_to_view()
+        self.reset_to_fit_window()
     
     def _zoom(self, factor: float):
         new_zoom = self._zoom_factor * factor
         
         if self._min_zoom <= new_zoom <= self._max_zoom:
+            self._user_scale = new_zoom
             self._zoom_factor = new_zoom
             self.scale(factor, factor)
             self.zoom_changed.emit(self._zoom_factor)

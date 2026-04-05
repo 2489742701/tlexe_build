@@ -4,6 +4,7 @@
 """
 
 from typing import Dict, Any, Optional, Type
+from PySide6.QtCore import Signal
 from .base import ComponentModel
 
 
@@ -425,7 +426,7 @@ class ImageModel(ComponentModel):
         super().__init__("image", name, x, y, width, height, text, parent_id)
         self._image_path: str = ""
         self._aspect_ratio: bool = True
-        self._scale_mode: str = "keep_aspect"  # keep_aspect, stretch, center
+        self._scale_mode: str = "fit"  # fill, fit, stretch, center, tile (兼容 keep_aspect)
         self._border_radius: int = 0
         self._opacity: float = 1.0
         self._hover_effect: bool = False
@@ -458,7 +459,7 @@ class ImageModel(ComponentModel):
     
     @scale_mode.setter
     def scale_mode(self, value: str):
-        valid_modes = ['keep_aspect', 'stretch', 'center']
+        valid_modes = ['fill', 'fit', 'stretch', 'center', 'tile', 'keep_aspect']  # 兼容旧值
         if value in valid_modes and self._scale_mode != value:
             self._scale_mode = value
             self.data_changed.emit()
@@ -531,7 +532,11 @@ class ImageModel(ComponentModel):
         instance = super().from_dict(data)
         instance._image_path = data.get('image_path', '')
         instance._aspect_ratio = data.get('aspect_ratio', True)
-        instance._scale_mode = data.get('scale_mode', 'keep_aspect')
+        # 兼容旧的 scale_mode 值
+        scale_mode = data.get('scale_mode', 'fit')
+        if scale_mode == 'keep_aspect':
+            scale_mode = 'fit'  # 将旧值映射到新值
+        instance._scale_mode = scale_mode
         instance._border_radius = data.get('border_radius', 0)
         instance._opacity = data.get('opacity', 1.0)
         instance._hover_effect = data.get('hover_effect', False)
@@ -812,6 +817,420 @@ class ProgressBarModel(ComponentModel):
         return instance
 
 
+class HiddenButtonModel(ComponentModel):
+    """隐藏按钮组件模型。
+    
+    透明但可点击的按钮，用于创建热区或隐藏触发区域。
+    
+    Attributes:
+        clicked: 点击信号
+        action: 按钮动作类型
+        action_params: 动作参数
+    """
+    
+    clicked = Signal()
+    
+    def __init__(self, name: str = "", x: int = 0, y: int = 0,
+                 width: int = 100, height: int = 100,
+                 parent_id: str = ""):
+        super().__init__("hidden_button", name, x, y, width, height, "", parent_id)
+        self._action: str = "none"
+        self._action_params: Dict[str, Any] = {}
+    
+    @property
+    def action(self) -> str:
+        return self._action
+    
+    @action.setter
+    def action(self, value: str):
+        if self._action != value:
+            self._action = value
+            self.data_changed.emit()
+    
+    @property
+    def action_params(self) -> Dict[str, Any]:
+        return self._action_params
+    
+    @action_params.setter
+    def action_params(self, value: Dict[str, Any]):
+        if self._action_params != value:
+            self._action_params = value
+            self.data_changed.emit()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        data = super().to_dict()
+        data['action'] = self._action
+        data['action_params'] = self._action_params
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'HiddenButtonModel':
+        instance = super().from_dict(data)
+        instance._action = data.get('action', 'none')
+        instance._action_params = data.get('action_params', {})
+        return instance
+    
+    def get_editor_tabs(self) -> list:
+        return super().get_editor_tabs() + [
+            {
+                "label": "动作类型",
+                "property": "action",
+                "type": "combo",
+                "options": ["none", "zoom", "open_original"],
+                "description": "点击后执行的动作"
+            }
+        ]
+    
+    def trigger_click(self):
+        """触发点击事件。"""
+        self.clicked.emit()
+
+
+class ImageButtonModel(ComponentModel):
+    """图片按钮组件模型。
+    
+    使用图片作为按钮外观，支持不同状态显示不同图片。
+    
+    Attributes:
+        clicked: 点击信号
+        image_path: 默认图片路径
+        hover_image_path: 悬停图片路径
+        pressed_image_path: 按下图片路径
+    """
+    
+    clicked = Signal()
+    
+    def __init__(self, name: str = "", x: int = 0, y: int = 0,
+                 width: int = 120, height: int = 40,
+                 parent_id: str = ""):
+        super().__init__("image_button", name, x, y, width, height, "", parent_id)
+        self._image_path: str = ""
+        self._hover_image_path: str = ""
+        self._pressed_image_path: str = ""
+        self._action: str = "none"
+        self._action_params: Dict[str, Any] = {}
+    
+    @property
+    def image_path(self) -> str:
+        return self._image_path
+    
+    @image_path.setter
+    def image_path(self, value: str):
+        if self._image_path != value:
+            self._image_path = value
+            self.data_changed.emit()
+    
+    @property
+    def hover_image_path(self) -> str:
+        return self._hover_image_path
+    
+    @hover_image_path.setter
+    def hover_image_path(self, value: str):
+        if self._hover_image_path != value:
+            self._hover_image_path = value
+            self.data_changed.emit()
+    
+    @property
+    def pressed_image_path(self) -> str:
+        return self._pressed_image_path
+    
+    @pressed_image_path.setter
+    def pressed_image_path(self, value: str):
+        if self._pressed_image_path != value:
+            self._pressed_image_path = value
+            self.data_changed.emit()
+    
+    @property
+    def action(self) -> str:
+        return self._action
+    
+    @action.setter
+    def action(self, value: str):
+        if self._action != value:
+            self._action = value
+            self.data_changed.emit()
+    
+    @property
+    def action_params(self) -> Dict[str, Any]:
+        return self._action_params
+    
+    @action_params.setter
+    def action_params(self, value: Dict[str, Any]):
+        if self._action_params != value:
+            self._action_params = value
+            self.data_changed.emit()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        data = super().to_dict()
+        data['image_path'] = self._image_path
+        data['hover_image_path'] = self._hover_image_path
+        data['pressed_image_path'] = self._pressed_image_path
+        data['action'] = self._action
+        data['action_params'] = self._action_params
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ImageButtonModel':
+        instance = super().from_dict(data)
+        instance._image_path = data.get('image_path', '')
+        instance._hover_image_path = data.get('hover_image_path', '')
+        instance._pressed_image_path = data.get('pressed_image_path', '')
+        instance._action = data.get('action', 'none')
+        instance._action_params = data.get('action_params', {})
+        return instance
+    
+    def get_editor_tabs(self) -> list:
+        return super().get_editor_tabs() + [
+            {
+                "label": "默认图片",
+                "property": "image_path",
+                "type": "image_select",
+                "description": "按钮默认显示的图片"
+            },
+            {
+                "label": "悬停图片",
+                "property": "hover_image_path",
+                "type": "image_select",
+                "description": "鼠标悬停时显示的图片"
+            },
+            {
+                "label": "按下图片",
+                "property": "pressed_image_path",
+                "type": "image_select",
+                "description": "鼠标按下时显示的图片"
+            },
+            {
+                "label": "动作类型",
+                "property": "action",
+                "type": "combo",
+                "options": ["none", "zoom", "open_original", "random_image"],
+                "description": "点击后执行的动作"
+            }
+        ]
+    
+    def trigger_click(self):
+        """触发点击事件。"""
+        self.clicked.emit()
+
+
+class ImageCarouselModel(ComponentModel):
+    """图片轮播组件模型。
+    
+    显示多张图片的轮播效果，支持自动播放和手动切换。
+    
+    Attributes:
+        images: 图片路径列表
+        current_index: 当前显示的图片索引
+        interval: 轮播间隔（毫秒）
+        auto_play: 是否自动播放
+        loop: 是否循环播放
+    
+    Signals:
+        current_index_changed: 当前索引改变信号
+        lottery_finished: 抽奖动画结束信号，携带(中奖索引, 中奖图片路径)
+    """
+    
+    current_index_changed = Signal(int)
+    lottery_finished = Signal(int, str)
+    
+    def __init__(self, name: str = "", x: int = 0, y: int = 0,
+                 width: int = 300, height: int = 200,
+                 parent_id: str = ""):
+        super().__init__("image_carousel", name, x, y, width, height, "", parent_id)
+        self._images: list = []
+        self._image_labels: list = []
+        self._current_index: int = 0
+        self._interval: int = 2000
+        self._auto_play: bool = False
+        self._loop: bool = True
+    
+    @property
+    def images(self) -> list:
+        return self._images
+    
+    @images.setter
+    def images(self, value: list):
+        if self._images != value:
+            self._images = value
+            self.data_changed.emit()
+    
+    @property
+    def current_index(self) -> int:
+        return self._current_index
+    
+    @current_index.setter
+    def current_index(self, value: int):
+        if self._current_index != value:
+            self._current_index = value
+            self.current_index_changed.emit(value)
+            self.data_changed.emit()
+    
+    @property
+    def interval(self) -> int:
+        return self._interval
+    
+    @interval.setter
+    def interval(self, value: int):
+        if self._interval != value:
+            self._interval = value
+            self.data_changed.emit()
+    
+    @property
+    def auto_play(self) -> bool:
+        return self._auto_play
+    
+    @auto_play.setter
+    def auto_play(self, value: bool):
+        if self._auto_play != value:
+            self._auto_play = value
+            self.data_changed.emit()
+    
+    @property
+    def loop(self) -> bool:
+        return self._loop
+    
+    @loop.setter
+    def loop(self, value: bool):
+        if self._loop != value:
+            self._loop = value
+            self.data_changed.emit()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        data = super().to_dict()
+        data['images'] = self._images
+        data['current_index'] = self._current_index
+        data['interval'] = self._interval
+        data['auto_play'] = self._auto_play
+        data['loop'] = self._loop
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ImageCarouselModel':
+        instance = super().from_dict(data)
+        instance._images = data.get('images', [])
+        instance._current_index = data.get('current_index', 0)
+        instance._interval = data.get('interval', 2000)
+        instance._auto_play = data.get('auto_play', False)
+        instance._loop = data.get('loop', True)
+        return instance
+    
+    def get_editor_tabs(self) -> list:
+        return super().get_editor_tabs() + [
+            {
+                "label": "图片列表",
+                "property": "images",
+                "type": "image_list",
+                "description": "轮播的图片列表"
+            },
+            {
+                "label": "轮播间隔",
+                "property": "interval",
+                "type": "number",
+                "min": 100,
+                "max": 10000,
+                "description": "图片切换间隔（毫秒）"
+            },
+            {
+                "label": "自动播放",
+                "property": "auto_play",
+                "type": "checkbox",
+                "description": "是否自动轮播"
+            },
+            {
+                "label": "循环播放",
+                "property": "loop",
+                "type": "checkbox",
+                "description": "是否循环播放"
+            }
+        ]
+    
+    def next_image(self):
+        """切换到下一张图片。"""
+        if not self._images:
+            return
+        if self._loop:
+            self.current_index = (self._current_index + 1) % len(self._images)
+        else:
+            if self._current_index < len(self._images) - 1:
+                self.current_index = self._current_index + 1
+    
+    def prev_image(self):
+        """切换到上一张图片。"""
+        if not self._images:
+            return
+        if self._loop:
+            self.current_index = (self._current_index - 1) % len(self._images)
+        else:
+            if self._current_index > 0:
+                self.current_index = self._current_index - 1
+    
+    def random_image(self):
+        """随机切换到一张图片。"""
+        import random
+        if len(self._images) > 1:
+            new_index = random.randint(0, len(self._images) - 1)
+            self.current_index = new_index
+    
+    def lottery_animation(self, duration_ms: int = 3000, on_finished=None):
+        """执行抽奖动画。
+        
+        图片快速轮播，然后逐渐减速停止在随机位置。
+        
+        Args:
+            duration_ms: 动画总时长（毫秒）
+            on_finished: 动画完成回调函数
+        """
+        import random
+        from PySide6.QtCore import QTimer, QElapsedTimer
+        
+        if not self._images or len(self._images) < 2:
+            return
+        
+        final_index = random.randint(0, len(self._images) - 1)
+        
+        elapsed_timer = QElapsedTimer()
+        elapsed_timer.start()
+        
+        self._lottery_timer = QTimer()
+        self._lottery_timer.timeout.connect(
+            lambda: self._update_lottery_animation(
+                elapsed_timer, duration_ms, final_index, on_finished
+            )
+        )
+        self._lottery_timer.start(50)
+    
+    def _update_lottery_animation(self, elapsed_timer, duration_ms, final_index, on_finished):
+        """更新抽奖动画状态。"""
+        from PySide6.QtCore import QEasingCurve
+        
+        elapsed = elapsed_timer.elapsed()
+        progress = min(elapsed / duration_ms, 1.0)
+        
+        easing = QEasingCurve(QEasingCurve.Type.OutQuart)
+        eased_progress = easing.valueForProgress(progress)
+        
+        if progress < 1.0:
+            speed = int(50 + eased_progress * 300)
+            if self._lottery_timer.interval() != speed:
+                self._lottery_timer.setInterval(speed)
+            
+            self.next_image()
+        else:
+            self._lottery_timer.stop()
+            self.current_index = final_index
+            
+            winner_image = self._images[final_index] if final_index < len(self._images) else ""
+            self.lottery_finished.emit(final_index, winner_image)
+            
+            if on_finished:
+                on_finished(final_index)
+    
+    def stop_lottery(self):
+        """停止抽奖动画。"""
+        if hasattr(self, '_lottery_timer') and self._lottery_timer:
+            self._lottery_timer.stop()
+
+
 COMPONENT_TYPE_MAP: Dict[str, Type[ComponentModel]] = {
     'button': ButtonModel,
     'label': LabelModel,
@@ -822,6 +1241,9 @@ COMPONENT_TYPE_MAP: Dict[str, Type[ComponentModel]] = {
     'image': ImageModel,
     'video': VideoModel,
     'progressbar': ProgressBarModel,
+    'hidden_button': HiddenButtonModel,
+    'image_button': ImageButtonModel,
+    'image_carousel': ImageCarouselModel,
 }
 
 
