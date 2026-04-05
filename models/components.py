@@ -1108,6 +1108,7 @@ class ImageCarouselModel(ComponentModel):
     def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
         data['images'] = self._images
+        data['image_labels'] = self._image_labels
         data['current_index'] = self._current_index
         data['interval'] = self._interval
         data['auto_play'] = self._auto_play
@@ -1118,6 +1119,7 @@ class ImageCarouselModel(ComponentModel):
     def from_dict(cls, data: Dict[str, Any]) -> 'ImageCarouselModel':
         instance = super().from_dict(data)
         instance._images = data.get('images', [])
+        instance._image_labels = data.get('image_labels', [])
         instance._current_index = data.get('current_index', 0)
         instance._interval = data.get('interval', 2000)
         instance._auto_play = data.get('auto_play', False)
