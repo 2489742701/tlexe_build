@@ -1020,6 +1020,7 @@ class ImageCarouselModel(ComponentModel):
     
     Attributes:
         images: 图片路径列表
+        image_labels: 图片标签列表（如候选人姓名）
         current_index: 当前显示的图片索引
         interval: 轮播间隔（毫秒）
         auto_play: 是否自动播放
@@ -1133,6 +1134,12 @@ class ImageCarouselModel(ComponentModel):
                 "property": "images",
                 "type": "image_list",
                 "description": "轮播的图片列表"
+            },
+            {
+                "label": "图片标签",
+                "property": "image_labels",
+                "type": "string_list",
+                "description": "每张图片对应的标签（如候选人姓名）"
             },
             {
                 "label": "轮播间隔",
