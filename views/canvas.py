@@ -195,6 +195,10 @@ class ComponentGraphicsItem(QGraphicsObject):
             self._paint_combobox(painter, rect, style)
         elif comp_type == "checkbox":
             self._paint_checkbox(painter, rect, style)
+        elif comp_type == "image":
+            self._paint_image(painter, rect, style)
+        elif comp_type == "video":
+            self._paint_video(painter, rect, style)
         else:
             self._paint_component(painter, rect, style)
         
@@ -486,6 +490,127 @@ class ComponentGraphicsItem(QGraphicsObject):
                 text_flags = Qt.AlignmentFlag.AlignCenter
             
             painter.drawText(text_rect, text_flags, display_text)
+    
+    def _paint_image(self, painter: QPainter, rect: QRectF, style):
+        """绘制图片组件。"""
+        from PySide6.QtGui import QPixmap
+        
+        image_path = getattr(self._model, 'image_path', '')
+        
+        if image_path:
+            try:
+                pixmap = QPixmap(image_path)
+                if not pixmap.isNull():
+                    scale_mode = getattr(self._model, 'scale_mode', 'fit')
+                    aspect_ratio = getattr(self._model, 'aspect_ratio', True)
+                    
+                    if scale_mode == 'stretch':
+                        scaled = pixmap.scaled(
+                            int(rect.width()), int(rect.height()),
+                            Qt.AspectRatioMode.IgnoreAspectRatio,
+                            Qt.TransformationMode.SmoothTransformation
+                        )
+                        painter.drawPixmap(rect.toRect(), scaled)
+                    elif scale_mode == 'center':
+                        scaled = pixmap.scaled(
+                            int(rect.width()), int(rect.height()),
+                            Qt.AspectRatioMode.KeepAspectRatio
+                        )
+                        x = rect.x() + (rect.width() - scaled.width()) / 2
+                        y = rect.y() + (rect.height() - scaled.height()) / 2
+                        painter.drawPixmap(int(x), int(y), scaled)
+                    else:  # fill, fit
+                        if aspect_ratio:
+                            scaled = pixmap.scaled(
+                                int(rect.width()), int(rect.height()),
+                                Qt.AspectRatioMode.KeepAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation
+                            )
+                            x = rect.x() + (rect.width() - scaled.width()) / 2
+                            y = rect.y() + (rect.height() - scaled.height()) / 2
+                            painter.drawPixmap(int(x), int(y), scaled)
+                        else:
+                            scaled = pixmap.scaled(
+                                int(rect.width()), int(rect.height()),
+                                Qt.AspectRatioMode.IgnoreAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation
+                            )
+                            painter.drawPixmap(rect.toRect(), scaled)
+                    return
+            except Exception:
+                pass
+        
+        # 占位符
+        painter.setBrush(QBrush(QColor("#f5f5f5")))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRect(rect)
+        
+        painter.setPen(QColor("#999999"))
+        font = QFont("Arial", 16)
+        painter.setFont(font)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "[IMG]")
+        
+        placeholder = getattr(self._model, 'placeholder_text', '[Select Image]')
+        painter.setPen(QColor("#666666"))
+        font = QFont("Arial", 9)
+        painter.setFont(font)
+        text_rect = QRectF(rect.x(), rect.y() + rect.height() - 25, rect.width(), 20)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, placeholder)
+    
+    def _paint_video(self, painter: QPainter, rect: QRectF, style):
+        """绘制视频组件。"""
+        from PySide6.QtGui import QPixmap
+        
+        poster_path = getattr(self._model, 'poster_image', '')
+        video_path = getattr(self._model, 'video_path', '')
+        
+        if poster_path:
+            try:
+                pixmap = QPixmap(poster_path)
+                if not pixmap.isNull():
+                    scaled = pixmap.scaled(
+                        int(rect.width()), int(rect.height()),
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    x = rect.x() + (rect.width() - scaled.width()) / 2
+                    y = rect.y() + (rect.height() - scaled.height()) / 2
+                    painter.drawPixmap(int(x), int(y), scaled)
+                    
+                    # 绘制播放按钮
+                    self._draw_play_overlay(painter, rect)
+                    return
+            except Exception:
+                pass
+        
+        # 黑色背景
+        painter.setBrush(QBrush(QColor("#1a1a1a")))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRect(rect)
+        
+        # 绘制视频图标
+        painter.setPen(QColor("#ffffff"))
+        font = QFont("Arial", 20)
+        painter.setFont(font)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "[VIDEO]")
+        
+        if video_path:
+            self._draw_play_overlay(painter, rect)
+    
+    def _draw_play_overlay(self, painter: QPainter, rect: QRectF):
+        """绘制播放按钮覆盖层。"""
+        button_size = min(rect.width(), rect.height()) * 0.2
+        center_x = rect.x() + rect.width() / 2
+        center_y = rect.y() + rect.height() / 2
+        
+        painter.setBrush(QBrush(QColor(0, 0, 0, 150)))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(
+            center_x - button_size / 2,
+            center_y - button_size / 2,
+            button_size,
+            button_size
+        )
     
     def _auto_resize_component(self, new_width: int, new_height: int):
         """自动调整组件大小。"""
