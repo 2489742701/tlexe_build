@@ -68,3 +68,4 @@ crash_logs/
 .devmode
 *.uix
 *.bak
+_trash/

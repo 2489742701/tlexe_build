@@ -145,4 +145,25 @@ class TextSizeCalculator:
         else:
             return "正常"
     
-    def _get_fix_actions(self, is_squeezed:
+    def _get_fix_actions(self, is_squeezed: bool, width_ratio: float, height_ratio: float) -> list:
+        """获取修复操作建议"""
+        if not is_squeezed:
+            return []
+        
+        actions = []
+        
+        if width_ratio > 1.2:
+            actions.append({
+                'type': 'resize_width',
+                'reason': '文本宽度超出容器',
+                'priority': 'high' if width_ratio > 1.5 else 'medium'
+            })
+        
+        if height_ratio > 1.2:
+            actions.append({
+                'type': 'resize_height',
+                'reason': '文本高度超出容器',
+                'priority': 'high' if height_ratio > 1.5 else 'medium'
+            })
+        
+        return actions
