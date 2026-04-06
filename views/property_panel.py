@@ -110,89 +110,54 @@ class PropertyPanel(QWidget):
     
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
         
-        # ============================================================
-        # 滚动区域配置（重要！不要随意修改）
-        # 
-        # 【关键配置说明】
-        # 1. setWidgetResizable(True): 必须为True，否则内容无法自适应滚动
-        # 2. setFrameShape(NoFrame): 移除边框，保持界面简洁
-        # 3. HorizontalScrollBarAlwaysOff: 禁用水平滚动条，属性面板只需垂直滚动
-        # 4. VerticalScrollBarAsNeeded: 内容超出时才显示垂直滚动条
-        # 5. setSizePolicy(Expanding, Preferred): 宽度自适应，高度根据内容调整
-        # 6. setMinimumHeight(200): 确保最小高度，避免布局压缩
-        # 
-        # 【常见问题排查】
-        # | 问题 | 排查项 | 解决方法 |
-        # |------|--------|----------|
-        # | 滚动条不出现 | setWidgetResizable 是否为 True | scroll_area.setWidgetResizable(True) |
-        # | 内容被截断 | setMinimumHeight 是否设置 | scroll_content.setMinimumHeight(200) |
-        # | 布局错乱 | setSizePolicy 是否正确 | scroll_content.setSizePolicy(Expanding, Preferred) |
-        # | 滚动条样式异常 | SCROLL_AREA 样式是否应用 | scroll_area.setStyleSheet(PropertyPanelStyles.SCROLL_AREA) |
-        # | 内容无法滚动 | addStretch 是否存在 | self._content_layout.addStretch() |
-        # | 分组框标题被截断 | margin-top 是否足够大 | 增加 margin-top 值（如 20px） |
-        # | 内容紧贴边框 | padding 是否设置 | 增加 padding 值（如 16px 10px 10px 10px） |
-        # | 分组框内容为空 | QGroupBox 的 sizePolicy 是否设置 | group.setSizePolicy(Expanding, Minimum) |
-        # | 分组框高度不自适应 | QGroupBox 是否设置了固定高度 | 移除 setFixedHeight 或改用 setMinimumHeight |
-        # ============================================================
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet(PropertyPanelStyles.SCROLL_AREA)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: white;
+            }
+            QScrollBar:vertical {
+                background: #f0f0f0;
+                width: 8px;
+            }
+            QScrollBar::handle:vertical {
+                background: #c0c0c0;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+        """)
         
-        scroll_content = QWidget()
-        scroll_content.setStyleSheet(f"background-color: {Colors.BACKGROUND_PRIMARY};")
-        scroll_content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        scroll_content.setMinimumHeight(200)
+        content_widget = QWidget()
+        content_widget.setStyleSheet("background-color: white;")
         
-        # ============================================================
-        # 内容布局参数（重要！不要随意修改）
-        #
-        # 【布局规范】
-        # - setContentsMargins(18, 14, 18, 24): 左18px, 上14px, 右18px, 下24px
-        #   底部边距较大是为了避免内容紧贴底部边缘
-        # - setSpacing(32): 分组之间的间距，较大间距让界面更通透
-        #
-        # 【间距层级】
-        # 1. 内容区域间距: 32px（分组之间）
-        # 2. 分组内部间距: 18px（属性行之间）
-        # 3. 行内控件间距: 14-16px（标签与控件之间）
-        # ============================================================
-        self._content_layout = QVBoxLayout(scroll_content)
-        self._content_layout.setContentsMargins(18, 14, 18, 24)
-        self._content_layout.setSpacing(32)
-        
-        self._title_widget = self._create_title_header()
-        self._content_layout.addWidget(self._title_widget)
-        
-        self._basic_group = self._create_basic_group()
-        self._content_layout.addWidget(self._basic_group)
-        
-        self._geometry_group = self._create_geometry_group()
-        self._content_layout.addWidget(self._geometry_group)
-        
-        self._style_group = self._create_style_group()
-        self._content_layout.addWidget(self._style_group)
-        
-        self._type_specific_group = self._create_type_specific_group()
-        self._content_layout.addWidget(self._type_specific_group)
-        
+        self._content_layout = QVBoxLayout(content_widget)
+        self._content_layout.setContentsMargins(10, 10, 10, 10)
+        self._content_layout.setSpacing(10)
+        self._content_layout.addWidget(self._create_title_header())
+        self._content_layout.addWidget(self._create_basic_group())
+        self._content_layout.addWidget(self._create_geometry_group())
+        self._content_layout.addWidget(self._create_style_group())
+        self._content_layout.addWidget(self._create_type_specific_group())
         self._content_layout.addStretch()
         
-        scroll_area.setWidget(scroll_content)
+        scroll_area.setWidget(content_widget)
         layout.addWidget(scroll_area)
     
     def _create_row(self, label_text: str, widget: QWidget, stretch: bool = False) -> QHBoxLayout:
         """创建一行属性控件。"""
         layout = QHBoxLayout()
-        layout.setSpacing(16)
+        layout.setSpacing(8)
         
         label = QLabel(label_text)
         label.setFixedWidth(70)
-        label.setStyleSheet(PropertyPanelStyles.LABEL_HINT)
+        label.setStyleSheet("color: #555;")
         layout.addWidget(label)
         
         widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -267,10 +232,22 @@ class PropertyPanel(QWidget):
     
     def _create_basic_group(self) -> QGroupBox:
         group = QGroupBox("基础属性")
-        group.setStyleSheet(PropertyPanelStyles.GROUP_STYLE)
-        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         layout = QVBoxLayout(group)
-        layout.setSpacing(18)
+        layout.setSpacing(10)
         
         self._id_label = QLabel("-")
         self._id_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -304,10 +281,22 @@ class PropertyPanel(QWidget):
     
     def _create_geometry_group(self) -> QGroupBox:
         group = QGroupBox("位置和大小")
-        group.setStyleSheet(PropertyPanelStyles.GROUP_STYLE)
-        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         layout = QVBoxLayout(group)
-        layout.setSpacing(18)
+        layout.setSpacing(10)
         
         pos_layout = QHBoxLayout()
         pos_layout.setSpacing(14)
@@ -392,10 +381,22 @@ class PropertyPanel(QWidget):
     
     def _create_style_group(self) -> QGroupBox:
         group = QGroupBox("样式")
-        group.setStyleSheet(PropertyPanelStyles.GROUP_STYLE)
-        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         layout = QVBoxLayout(group)
-        layout.setSpacing(18)
+        layout.setSpacing(10)
         
         style_mode_layout = QHBoxLayout()
         style_mode_layout.setSpacing(14)
@@ -512,10 +513,22 @@ class PropertyPanel(QWidget):
     
     def _create_type_specific_group(self) -> QGroupBox:
         group = QGroupBox("特定属性")
-        group.setStyleSheet(PropertyPanelStyles.GROUP_STYLE)
-        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
         self._type_layout = QVBoxLayout(group)
-        self._type_layout.setSpacing(18)
+        self._type_layout.setSpacing(10)
         return group
     
     def set_component(self, model: Optional[ComponentModel]):
