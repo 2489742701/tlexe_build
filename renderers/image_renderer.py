@@ -103,20 +103,17 @@ class ImageRenderer(ComponentRenderer):
     
     def _draw_placeholder(self, painter: QPainter, model: ComponentModel, rect: QRectF):
         """绘制占位符。"""
-        placeholder_text = getattr(model, 'placeholder_text', '点击选择图片')
+        placeholder_text = getattr(model, 'placeholder_text', '[Click to select image]')
         
-        # 绘制占位符背景
         painter.setBrush(QBrush(QColor("#f5f5f5")))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRect(rect)
         
-        # 绘制图片图标
         painter.setPen(QColor("#999999"))
         font = QFont("Arial", 24)
         painter.setFont(font)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "🖼")
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "[IMG]")
         
-        # 绘制占位符文本
         painter.setPen(QColor("#666666"))
         font = QFont("Arial", 10)
         painter.setFont(font)

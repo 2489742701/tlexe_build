@@ -39,18 +39,18 @@ COMPONENT_CATEGORIES: Dict[str, Dict[str, str]] = {
 }
 
 COMPONENT_ICONS: Dict[str, str] = {
-    "button": "🔘",
-    "checkbox": "☑️",
-    "combobox": "📋",
-    "progressbar": "📊",
-    "hidden_button": "👻",
-    "image_button": "🖼️",
-    "image": "🖼️",
-    "video": "🎬",
-    "image_carousel": "🎞",
-    "container": "📦",
-    "input": "✏️",
-    "label": "📝",
+    "button": "[B]",
+    "checkbox": "[x]",
+    "combobox": "[v]",
+    "progressbar": "[%]",
+    "hidden_button": "[H]",
+    "image_button": "[IB]",
+    "image": "[IMG]",
+    "video": "[VID]",
+    "image_carousel": "[SLD]",
+    "container": "[C]",
+    "input": "[I]",
+    "label": "[T]",
 }
 
 

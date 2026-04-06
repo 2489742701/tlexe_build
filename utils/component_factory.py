@@ -546,29 +546,55 @@ class ComponentFactory:
     @staticmethod
     def _create_video(model) -> QWidget:
         """创建视频控件。"""
-        from PySide6.QtWidgets import QLabel, QVBoxLayout, QPushButton
+        from PySide6.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QPushButton
+        from PySide6.QtMultimedia import QMediaPlayer
         from PySide6.QtMultimediaWidgets import QVideoWidget
         
         container = QWidget()
         container.resize(model.width, model.height)
+        container.setProperty("component_model", model)
         
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         
+        video_widget = None
+        media_player = None
+        
         try:
             video_widget = QVideoWidget()
-            video_widget.setMinimumSize(model.width, model.height - 40)
+            video_widget.setMinimumSize(model.width, max(model.height - 40, 60))
             layout.addWidget(video_widget)
             
+            media_player = QMediaPlayer()
+            media_player.setVideoOutput(video_widget)
+            
+            video_path = getattr(model, 'video_path', '')
+            if video_path:
+                from PySide6.QtCore import QUrl
+                media_player.setSource(QUrl.fromLocalFile(video_path))
+            
             controls = QHBoxLayout()
-            play_btn = QPushButton("播放")
-            stop_btn = QPushButton("停止")
+            controls.setSpacing(10)
+            
+            play_btn = QPushButton("Play")
+            play_btn.setFixedWidth(60)
+            play_btn.clicked.connect(lambda: media_player.play() if media_player else None)
             controls.addWidget(play_btn)
+            
+            stop_btn = QPushButton("Stop")
+            stop_btn.setFixedWidth(60)
+            stop_btn.clicked.connect(lambda: media_player.pause() if media_player else None)
             controls.addWidget(stop_btn)
+            
+            controls.addStretch()
             layout.addLayout(controls)
-        except ImportError:
-            fallback_label = QLabel("视频组件 (需要PySide6多媒体支持)")
+            
+            container._media_player = media_player
+            
+        except (ImportError, AttributeError) as e:
+            fallback_label = QLabel("[Video requires PySide6 multimedia]")
             fallback_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            fallback_label.setStyleSheet("background-color: #1a1a1a; color: #fff; padding: 20px;")
             layout.addWidget(fallback_label)
         
         StyleHelper.apply_style(container, model.style)

@@ -85,7 +85,7 @@ class ImageButtonRenderer(ComponentRenderer):
         from PySide6.QtGui import QFont
         font = QFont("Arial", 16)
         painter.setFont(font)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "🖼")
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "[IB]")
         
         # 绘制文本
         painter.setPen(QColor("#666666"))

@@ -86,7 +86,7 @@ class ImageCarouselRenderer(ComponentRenderer):
         painter.setPen(QColor("#999999"))
         font = QFont("Arial", 24)
         painter.setFont(font)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "🎞")
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "[SLD]")
         
         # 绘制文本
         painter.setPen(QColor("#666666"))

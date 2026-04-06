@@ -88,20 +88,17 @@ class VideoRenderer(ComponentRenderer):
     
     def _draw_video_placeholder(self, painter: QPainter, model: ComponentModel, rect: QRectF):
         """绘制视频占位符。"""
-        placeholder_text = getattr(model, 'placeholder_text', '点击选择视频')
+        placeholder_text = getattr(model, 'placeholder_text', '[Click to select video]')
         
-        # 绘制占位符背景
         painter.setBrush(QBrush(QColor("#1a1a1a")))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRect(rect)
         
-        # 绘制视频图标
         painter.setPen(QColor("#ffffff"))
         font = QFont("Arial", 32)
         painter.setFont(font)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "🎬")
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "[VIDEO]")
         
-        # 绘制占位符文本
         painter.setPen(QColor("#cccccc"))
         font = QFont("Arial", 10)
         painter.setFont(font)

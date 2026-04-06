@@ -153,16 +153,16 @@ class LogicTreeView(QWidget):
         bottom_bar.setContentsMargins(5, 5, 5, 5)
         bottom_bar.setSpacing(5)
         
-        self._btn_hint = QPushButton("💡")
+        self._btn_hint = QPushButton("[?]")
         self._btn_hint.setFixedSize(28, 28)
-        self._btn_hint.setToolTip("点击查看操作提示")
+        self._btn_hint.setToolTip("Click for tips")
         self._btn_hint.clicked.connect(self._show_hint_popup)
         self._btn_hint.setStyleSheet("""
             QPushButton {
                 background-color: #fff3cd;
                 border: 1px solid #ffc107;
                 border-radius: 14px;
-                font-size: 14px;
+                font-size: 10px;
             }
             QPushButton:hover {
                 background-color: #ffe69c;
@@ -170,9 +170,9 @@ class LogicTreeView(QWidget):
         """)
         bottom_bar.addWidget(self._btn_hint)
         
-        self._btn_state_machine = QPushButton("📊")
+        self._btn_state_machine = QPushButton("[SM]")
         self._btn_state_machine.setFixedSize(28, 28)
-        self._btn_state_machine.setToolTip("打开状态机视图")
+        self._btn_state_machine.setToolTip("Open state machine")
         self._btn_state_machine.clicked.connect(self._open_state_machine)
         self._btn_state_machine.setStyleSheet("""
             QPushButton {
@@ -316,12 +316,12 @@ class LogicTreeView(QWidget):
             return
         
         type_icons = {
-            "button": "🔘",
-            "label": "📝",
-            "input": "✏️",
-            "container": "📦",
+            "button": "[B]",
+            "label": "[T]",
+            "input": "[I]",
+            "container": "[C]",
         }
-        icon = type_icons.get(comp.type, "❓")
+        icon = type_icons.get(comp.type, "[?]")
         
         item = QTreeWidgetItem(parent_item)
         
@@ -445,12 +445,12 @@ class LogicTreeView(QWidget):
         item = self._node_map[comp_id]
         
         type_icons = {
-            "button": "🔘",
-            "label": "📝",
-            "input": "✏️",
-            "container": "📦",
+            "button": "[B]",
+            "label": "[T]",
+            "input": "[I]",
+            "container": "[C]",
         }
-        icon = type_icons.get(comp.type, "❓")
+        icon = type_icons.get(comp.type, "[?]")
         
         if isinstance(comp, ButtonModel) and comp.has_branch:
             text = f"{icon} {comp.text} → {comp.branch_name}"

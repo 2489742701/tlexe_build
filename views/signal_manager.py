@@ -255,29 +255,29 @@ class SignalManagerPanel(QWidget):
         
         toolbar = QHBoxLayout()
         
-        self._add_btn = QPushButton("➕ 注册信号")
+        self._add_btn = QPushButton("[+] Register")
         self._add_btn.clicked.connect(self._on_add_signal)
         toolbar.addWidget(self._add_btn)
         
-        self._edit_btn = QPushButton("✏️ 编辑")
+        self._edit_btn = QPushButton("[E] Edit")
         self._edit_btn.clicked.connect(self._on_edit_signal)
         toolbar.addWidget(self._edit_btn)
         
-        self._delete_btn = QPushButton("🗑️ 删除")
+        self._delete_btn = QPushButton("[X] Delete")
         self._delete_btn.clicked.connect(self._on_delete_signal)
         toolbar.addWidget(self._delete_btn)
         
         toolbar.addStretch()
         
-        self._refresh_btn = QPushButton("🔄 刷新")
+        self._refresh_btn = QPushButton("[R] Refresh")
         self._refresh_btn.clicked.connect(self.refresh)
         toolbar.addWidget(self._refresh_btn)
         
         layout.addLayout(toolbar)
         
         hint = QLabel(
-            "💡 双击信号可编辑 | 按源组件分组显示\n"
-            "信号注册后，当源组件触发信号时，会自动执行目标动作"
+            "[i] Double-click to edit | Grouped by source\n"
+            "Registered signals will auto-execute targets when triggered"
         )
         hint.setStyleSheet("color: #666; font-size: 11px; padding: 8px;")
         layout.addWidget(hint)
