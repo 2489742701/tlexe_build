@@ -157,15 +157,15 @@ class ComponentPanel(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
-        header = QLabel("🧩 组件面板")
+        header = QLabel("组件面板")
         header.setStyleSheet("""
             QLabel {
-                font-size: 14px;
+                font-size: 13px;
                 font-weight: bold;
-                color: #333;
-                padding: 10px;
-                background-color: #f5f5f5;
-                border-bottom: 1px solid #ddd;
+                color: #555;
+                padding: 6px 10px;
+                background-color: #fff;
+                border-bottom: 1px solid #eee;
             }
         """)
         main_layout.addWidget(header)

@@ -169,31 +169,53 @@ class PropertyPanel(QWidget):
         return layout
     
     def _create_title_header(self) -> QFrame:
-        """创建组件标题头部（大名称 + 帮助按钮）。"""
+        """创建组件标题头部。"""
         frame = QFrame()
-        frame.setFrameShape(QFrame.Shape.StyledPanel)
-        frame.setStyleSheet(PropertyPanelStyles.TITLE_FRAME)
+        frame.setStyleSheet("""
+            QFrame {
+                background-color: #fff;
+                border-bottom: 1px solid #eee;
+                padding: 6px 10px;
+            }
+        """)
         
         layout = QHBoxLayout(frame)
-        layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(14)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
         
         self._title_label = QLabel("未选择")
-        self._title_label.setStyleSheet(PropertyPanelStyles.TITLE_LABEL)
+        self._title_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #555;")
         layout.addWidget(self._title_label)
         
+        layout.addStretch()
+        
         self._help_btn = QPushButton("?")
-        self._help_btn.setFixedSize(22, 22)
-        self._help_btn.setStyleSheet(PropertyPanelStyles.HELP_BUTTON)
+        self._help_btn.setFixedSize(20, 20)
+        self._help_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e0e0e0;
+                border: none;
+                border-radius: 10px;
+                font-size: 11px;
+                color: #666;
+            }
+            QPushButton:hover {
+                background-color: #d0d0d0;
+            }
+        """)
         self._help_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._help_btn.setToolTip("点击查看组件说明")
         self._help_btn.clicked.connect(self._on_help_clicked)
         layout.addWidget(self._help_btn)
         
-        layout.addStretch()
-        
         self._type_badge_label = QLabel("")
-        self._type_badge_label.setStyleSheet(PropertyPanelStyles.TYPE_BADGE)
+        self._type_badge_label.setStyleSheet("""
+            font-size: 10px;
+            color: #888;
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+        """)
         layout.addWidget(self._type_badge_label)
         
         return frame

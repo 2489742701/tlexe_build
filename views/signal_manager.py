@@ -231,15 +231,15 @@ class SignalManagerPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        header = QLabel("📡 信号管理")
+        header = QLabel("信号管理")
         header.setStyleSheet("""
             QLabel {
-                font-size: 16px;
+                font-size: 13px;
                 font-weight: bold;
-                color: #333;
-                padding: 12px;
-                background-color: #f5f5f5;
-                border-bottom: 1px solid #ddd;
+                color: #555;
+                padding: 6px 10px;
+                background-color: #fff;
+                border-bottom: 1px solid #eee;
             }
         """)
         layout.addWidget(header)
