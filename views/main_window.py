@@ -195,9 +195,10 @@ class MainWindow(QMainWindow):
         right_layout.setSpacing(0)
         
         # 使用选项卡组织右侧面板
-        from PySide6.QtWidgets import QTabWidget
+        from PySide6.QtWidgets import QTabWidget, QSizePolicy
         self._right_tabs = QTabWidget()
         self._right_tabs.setTabPosition(QTabWidget.TabPosition.North)
+        self._right_tabs.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # 属性面板选项卡
         self.property_panel = PropertyPanel()

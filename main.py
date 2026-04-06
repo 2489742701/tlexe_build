@@ -140,11 +140,6 @@ def parse_args():
         action='store_true', 
         help='自动测试蓝图功能（打开项目后自动打开状态机视图）'
     )
-    parser.add_argument(
-        'project', 
-        nargs='?', 
-        help='要打开的项目文件路径 (.itexe)'
-    )
     return parser.parse_args()
 
 
@@ -179,17 +174,20 @@ class AppManager:
         ## 修复说明 (2026-04-02)
         使用 AppInitializer 进行初始化，移除了原本散落在 __init__ 中的
         各种初始化代码，使此方法更加简洁清晰。
+        
+        ## 修复说明 (2026-04-06)
+        新增启动画面支持，在主窗口显示前关闭启动画面。
         """
         global _session_logger
         
         # 使用 AppInitializer 进行应用初始化
         # 修复：将初始化逻辑抽取到独立的服务类
-        initializer = AppInitializer(dev_mode=dev_mode, skip_welcome=skip_welcome)
-        self._app = initializer.run()
+        self._initializer = AppInitializer(dev_mode=dev_mode, skip_welcome=skip_welcome)
+        self._app = self._initializer.run()
         
         # 获取会话日志记录器，用于全局异常处理
-        _session_logger = initializer._session_logger
-        self._session_logger = initializer._session_logger
+        _session_logger = self._initializer._session_logger
+        self._session_logger = self._initializer._session_logger
         
         # 初始化自动保存服务
         # 修复：将自动保存逻辑抽取到 AutoSaveService

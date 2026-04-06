@@ -176,7 +176,11 @@ class ComponentModel(QObject):
     @property
     def id(self) -> str:
         return self._id
-
+    
+    @id.setter
+    def id(self, value: str):
+        self._id = value
+    
     @property
     def type(self) -> str:
         return self._type

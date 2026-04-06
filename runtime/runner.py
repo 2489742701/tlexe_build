@@ -93,11 +93,13 @@ class Runner:
     def __init__(self):
         self._windows: Dict[str, QMainWindow] = {}
         self._components: Dict[str, Any] = {}
+        self._component_models: Dict[str, Any] = {}
         self._containers: Dict[str, QWidget] = {}
         self._container_positions: Dict[str, tuple] = {}
         self._container_original_positions: Dict[str, tuple] = {}
         self._container_parents: Dict[str, str] = {}
         self._executor: Optional[ActionExecutor] = None
+        self._linkage_manager: Optional[Any] = None
         self._project_data: Dict[str, Any] = {}
     
     def run(self, project_data: Dict[str, Any]):
@@ -144,7 +146,17 @@ class Runner:
             window = self._create_window(main_window_data)
             if window:
                 self._windows[main_window_id] = window
-                self._executor = ActionExecutor(self._components, self._windows, self._project_data)
+                
+                from models import ProjectModel
+                self._project_model = ProjectModel()
+                self._project_model.from_dict(project_data)
+                
+                self._executor = ActionExecutor(self._project_model)
+                
+                from .linkage_manager import LinkageManager
+                self._linkage_manager = LinkageManager(self._project_model, self._executor)
+                self._linkage_manager.setup_linkages()
+                
                 self._setup_actions(window, main_window_data)
                 
                 print(f"\n窗口创建完成，组件数量: {len(self._components)}")
@@ -387,10 +399,12 @@ class Runner:
         from models.components import COMPONENT_TYPE_MAP
         
         comp_type = comp_data.get('comp_type') or comp_data.get('type', 'label')
+        comp_id = comp_data.get('id', '')
         
         comp_class = COMPONENT_TYPE_MAP.get(comp_type)
         if comp_class:
             model = comp_class.from_dict(comp_data)
+            self._component_models[comp_id] = model
             widget = create_component_widget(model)
             
             if comp_type == 'progressbar':
@@ -458,14 +472,26 @@ class Runner:
                     if button:
                         target_window_id = comp_data.get('target_window_id')
                         action = comp_data.get('action', {})
+                        action_type = action.get('action_type', 'none')
                         
                         if target_window_id:
                             button.clicked.connect(lambda checked, twid=target_window_id: self._open_event_window(twid))
-                        elif action.get('action_type') == 'close_program':
+                        elif action_type == 'close_program':
                             button.clicked.connect(self._close_all_windows)
-                        elif action.get('action_type') == 'close_window':
-                            # 修复：确保正确关闭当前窗口
+                        elif action_type == 'close_window':
                             button.clicked.connect(window.close)
+                        elif action_type != 'none':
+                            button.clicked.connect(lambda checked, cid=comp_id: self._execute_button_action(cid))
+    
+    def _execute_button_action(self, comp_id: str):
+        """执行按钮动作。
+        
+        Args:
+            comp_id: 组件ID
+        """
+        comp_model = self._project_model.get_component(comp_id)
+        if comp_model and hasattr(comp_model, 'action'):
+            self._executor.execute(comp_model.action)
     
     def _open_event_window(self, window_id: str):
         """打开事件窗口（基于MCP建议的优化版）。
@@ -506,19 +532,22 @@ class Runner:
                 window.activateWindow()
     
     def _safe_close_window(self, window_id: str, window):
-        """安全关闭窗口，防止内存泄漏（基于MCP建议）。"""
+        """安全关闭窗口，防止内存泄漏。"""
         try:
-            # 断开所有信号连接
             window.disconnect()
         except:
             pass
         
-        # 设置删除标记，确保C++对象被释放
+        if self._linkage_manager:
+            try:
+                self._linkage_manager.clear_linkages()
+            except Exception as e:
+                debug_log('general', f"清理联动连接失败: {e}", force=True)
+        
         window.setAttribute(Qt.WA_DeleteOnClose, True)
         window.close()
         window.deleteLater()
         
-        # 从字典中移除已关闭的窗口
         self._windows.pop(window_id, None)
     
     def _close_all_windows(self):

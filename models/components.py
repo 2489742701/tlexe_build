@@ -1036,8 +1036,8 @@ class ImageCarouselModel(ComponentModel):
     
     def __init__(self, name: str = "", x: int = 0, y: int = 0,
                  width: int = 300, height: int = 200,
-                 parent_id: str = ""):
-        super().__init__("image_carousel", name, x, y, width, height, "", parent_id)
+                 text: str = "", parent_id: str = ""):
+        super().__init__("image_carousel", name, x, y, width, height, text, parent_id)
         self._images: list = []
         self._image_labels: list = []
         self._current_index: int = 0
@@ -1053,6 +1053,7 @@ class ImageCarouselModel(ComponentModel):
     def images(self, value: list):
         if self._images != value:
             self._images = value
+            self._sync_image_labels()
             self.data_changed.emit()
     
     @property
@@ -1063,7 +1064,21 @@ class ImageCarouselModel(ComponentModel):
     def image_labels(self, value: list):
         if self._image_labels != value:
             self._image_labels = value
+            self._sync_images_to_labels()
             self.data_changed.emit()
+    
+    def _sync_image_labels(self):
+        """同步图片标签列表长度与图片列表一致。"""
+        if len(self._image_labels) > len(self._images):
+            self._image_labels = self._image_labels[:len(self._images)]
+        elif len(self._image_labels) < len(self._images):
+            default_labels = [f"图片{i+1}" for i in range(len(self._images) - len(self._image_labels))]
+            self._image_labels.extend(default_labels)
+    
+    def _sync_images_to_labels(self):
+        """同步图片列表长度与标签列表一致（截断多余图片）。"""
+        if len(self._images) > len(self._image_labels) and self._image_labels:
+            self._images = self._images[:len(self._image_labels)]
     
     @property
     def current_index(self) -> int:

@@ -28,6 +28,8 @@ from .progressbar_renderer import ProgressBarRenderer
 from .hidden_button_renderer import HiddenButtonRenderer
 from .image_button_renderer import ImageButtonRenderer
 from .image_carousel_renderer import ImageCarouselRenderer
+from .image_renderer import ImageRenderer
+from .video_renderer import VideoRenderer
 
 
 class RendererFactoryV2:
@@ -59,6 +61,8 @@ class RendererFactoryV2:
         'hidden_button': HiddenButtonRenderer,
         'image_button': ImageButtonRenderer,
         'image_carousel': ImageCarouselRenderer,
+        'image': ImageRenderer,
+        'video': VideoRenderer,
     }
     
     # 渲染器实例缓存（修复：缓存实例避免重复创建）

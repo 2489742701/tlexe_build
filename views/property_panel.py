@@ -1,10 +1,26 @@
 """属性面板模块。
 
-本模块包含组件属性编辑面板的实现。
-支持基础属性、样式属性、类型特定属性的编辑。
+本模块包含组件属性编辑面板的实现，是用户编辑组件属性的主要界面。
+
+## 功能
+1. 基础属性编辑：ID、名称、位置、尺寸
+2. 样式属性编辑：颜色、字体、边框等
+3. 类型特定属性：根据组件类型显示不同属性
+4. 组件信息展示：中文名称、帮助说明
+
+## 使用方法
+```python
+panel = PropertyPanel()
+panel.set_component(button_model)  # 显示按钮属性
+panel.set_component(None)           # 清空面板
+```
+
+## 信号
+- property_changed: 属性变更信号
+- action_config_requested: 请求配置行为信号
 """
 
-from typing import Optional
+from typing import Optional, Dict
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
     QLabel, QLineEdit, QTextEdit, QSpinBox, QDoubleSpinBox, QCheckBox, QComboBox,
@@ -15,27 +31,57 @@ from PySide6.QtGui import QColor
 
 from models import (
     ComponentModel, ButtonModel, LabelModel, InputModel, 
-    ContainerModel, CheckBoxModel, ComboBoxModel, ImageModel, VideoModel, ProgressBarModel
+    ContainerModel, CheckBoxModel, ComboBoxModel, ImageModel, VideoModel, ProgressBarModel,
+    HiddenButtonModel, ImageButtonModel, ImageCarouselModel
 )
+from styles import PropertyPanelStyles, Colors
 
 
-GROUP_STYLE = """
-    QGroupBox {
-        font-weight: bold;
-        font-size: 12px;
-        border: 1px solid #c0c0c0;
-        border-radius: 6px;
-        margin-top: 12px;
-        padding-top: 8px;
-        background-color: #fafafa;
-    }
-    QGroupBox::title {
-        subcontrol-origin: margin;
-        left: 10px;
-        padding: 0 5px;
-        color: #333333;
-    }
-"""
+# ============================================================
+# 组件信息字典
+# 定义每种组件的中文名称和帮助说明
+# ============================================================
+COMPONENT_INFO: Dict[str, Dict[str, str]] = {
+    'button': {
+        'name': '按钮', 
+        'desc': '可点击的按钮控件，用于触发动作（如打开窗口、执行联动等）。'
+    },
+    'label': {
+        'name': '文本标签', 
+        'desc': '显示静态文本，支持自动换行、对齐方式设置。'
+    },
+    'input': {
+        'name': '输入框', 
+        'desc': '单行文本输入控件，支持占位符、密码模式、最大长度限制。'
+    },
+    'container': {
+        'name': '容器', 
+        'desc': '用于组织其他组件的容器，支持定位模式和布局管理。'
+    },
+    'checkbox': {
+        'name': '复选框', 
+        'desc': '勾选/取消勾选的开关控件，用于布尔值选项。'
+    },
+    'combobox': {
+        'name': '下拉框', 
+        'desc': '下拉选择列表，用户可以从预定义选项中选择一个值。'
+    },
+    'image': {
+        'name': '图片', 
+        'desc': '显示图片控件，支持多种缩放模式和圆角效果。'
+    },
+    'video': {
+        'name': '视频', 
+        'desc': '视频播放控件，支持自动播放、循环、音量控制。'
+    },
+    'progressbar': {
+        'name': '进度条', 
+        'desc': '显示进度信息，支持手动或自动进度更新。'
+    },
+    'hidden_button': {'name': '隐藏按钮', 'desc': '透明但可点击的热区按钮，用于创建不可见的触发区域。'},
+    'image_button': {'name': '图片按钮', 'desc': '使用图片作为外观的按钮，支持悬停和按下状态切换。'},
+    'image_carousel': {'name': '图片轮播', 'desc': '多张图片轮播展示控件，支持自动播放、抽奖动画。'},
+}
 
 
 class PropertyPanel(QWidget):
@@ -66,42 +112,61 @@ class PropertyPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
+        # ============================================================
+        # 滚动区域配置（重要！不要随意修改）
+        # 
+        # 【关键配置说明】
+        # 1. setWidgetResizable(True): 必须为True，否则内容无法自适应滚动
+        # 2. setFrameShape(NoFrame): 移除边框，保持界面简洁
+        # 3. HorizontalScrollBarAlwaysOff: 禁用水平滚动条，属性面板只需垂直滚动
+        # 4. VerticalScrollBarAsNeeded: 内容超出时才显示垂直滚动条
+        # 5. setSizePolicy(Expanding, Preferred): 宽度自适应，高度根据内容调整
+        # 6. setMinimumHeight(200): 确保最小高度，避免布局压缩
+        # 
+        # 【常见问题排查】
+        # | 问题 | 排查项 | 解决方法 |
+        # |------|--------|----------|
+        # | 滚动条不出现 | setWidgetResizable 是否为 True | scroll_area.setWidgetResizable(True) |
+        # | 内容被截断 | setMinimumHeight 是否设置 | scroll_content.setMinimumHeight(200) |
+        # | 布局错乱 | setSizePolicy 是否正确 | scroll_content.setSizePolicy(Expanding, Preferred) |
+        # | 滚动条样式异常 | SCROLL_AREA 样式是否应用 | scroll_area.setStyleSheet(PropertyPanelStyles.SCROLL_AREA) |
+        # | 内容无法滚动 | addStretch 是否存在 | self._content_layout.addStretch() |
+        # | 分组框标题被截断 | margin-top 是否足够大 | 增加 margin-top 值（如 20px） |
+        # | 内容紧贴边框 | padding 是否设置 | 增加 padding 值（如 16px 10px 10px 10px） |
+        # | 分组框内容为空 | QGroupBox 的 sizePolicy 是否设置 | group.setSizePolicy(Expanding, Minimum) |
+        # | 分组框高度不自适应 | QGroupBox 是否设置了固定高度 | 移除 setFixedHeight 或改用 setMinimumHeight |
+        # ============================================================
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background-color: #ffffff;
-            }
-            QScrollBar:vertical {
-                border: none;
-                background: #f0f0f0;
-                width: 12px;
-                margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background: #c0c0c0;
-                min-height: 30px;
-                border-radius: 6px;
-                margin: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #a0a0a0;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
-        """)
+        scroll_area.setStyleSheet(PropertyPanelStyles.SCROLL_AREA)
         
         scroll_content = QWidget()
-        scroll_content.setStyleSheet("background-color: #ffffff;")
-        scroll_content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        scroll_content.setStyleSheet(f"background-color: {Colors.BACKGROUND_PRIMARY};")
+        scroll_content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        scroll_content.setMinimumHeight(200)
+        
+        # ============================================================
+        # 内容布局参数（重要！不要随意修改）
+        #
+        # 【布局规范】
+        # - setContentsMargins(18, 14, 18, 24): 左18px, 上14px, 右18px, 下24px
+        #   底部边距较大是为了避免内容紧贴底部边缘
+        # - setSpacing(32): 分组之间的间距，较大间距让界面更通透
+        #
+        # 【间距层级】
+        # 1. 内容区域间距: 32px（分组之间）
+        # 2. 分组内部间距: 18px（属性行之间）
+        # 3. 行内控件间距: 14-16px（标签与控件之间）
+        # ============================================================
         self._content_layout = QVBoxLayout(scroll_content)
-        self._content_layout.setContentsMargins(12, 12, 12, 12)
-        self._content_layout.setSpacing(16)
+        self._content_layout.setContentsMargins(18, 14, 18, 24)
+        self._content_layout.setSpacing(32)
+        
+        self._title_widget = self._create_title_header()
+        self._content_layout.addWidget(self._title_widget)
         
         self._basic_group = self._create_basic_group()
         self._content_layout.addWidget(self._basic_group)
@@ -123,13 +188,14 @@ class PropertyPanel(QWidget):
     def _create_row(self, label_text: str, widget: QWidget, stretch: bool = False) -> QHBoxLayout:
         """创建一行属性控件。"""
         layout = QHBoxLayout()
-        layout.setSpacing(8)
+        layout.setSpacing(16)
         
         label = QLabel(label_text)
-        label.setFixedWidth(60)
-        label.setStyleSheet("color: #555;")
+        label.setFixedWidth(70)
+        label.setStyleSheet(PropertyPanelStyles.LABEL_HINT)
         layout.addWidget(label)
         
+        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(widget)
         
         if stretch:
@@ -137,11 +203,74 @@ class PropertyPanel(QWidget):
         
         return layout
     
+    def _create_title_header(self) -> QFrame:
+        """创建组件标题头部（大名称 + 帮助按钮）。"""
+        frame = QFrame()
+        frame.setFrameShape(QFrame.Shape.StyledPanel)
+        frame.setStyleSheet(PropertyPanelStyles.TITLE_FRAME)
+        
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(14)
+        
+        self._title_label = QLabel("未选择")
+        self._title_label.setStyleSheet(PropertyPanelStyles.TITLE_LABEL)
+        layout.addWidget(self._title_label)
+        
+        self._help_btn = QPushButton("?")
+        self._help_btn.setFixedSize(22, 22)
+        self._help_btn.setStyleSheet(PropertyPanelStyles.HELP_BUTTON)
+        self._help_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._help_btn.setToolTip("点击查看组件说明")
+        self._help_btn.clicked.connect(self._on_help_clicked)
+        layout.addWidget(self._help_btn)
+        
+        layout.addStretch()
+        
+        self._type_badge_label = QLabel("")
+        self._type_badge_label.setStyleSheet(PropertyPanelStyles.TYPE_BADGE)
+        layout.addWidget(self._type_badge_label)
+        
+        return frame
+    
+    def _on_help_clicked(self):
+        """点击帮助按钮时显示组件说明。"""
+        if not self._current_model:
+            return
+        
+        comp_type = self._current_model.type
+        info = COMPONENT_INFO.get(comp_type, {})
+        name = info.get('name', comp_type)
+        desc = info.get('desc', '暂无说明')
+        
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(
+            self,
+            f"组件说明 - {name}",
+            f"<h3>{name}</h3>"
+            f"<p style='color:#555; line-height:1.6;'>{desc}</p>",
+            QMessageBox.StandardButton.Ok
+        )
+    
+    def _update_title_header(self, model: ComponentModel):
+        """更新标题头部显示。"""
+        comp_type = model.type
+        info = COMPONENT_INFO.get(comp_type, {})
+        display_name = info.get('name', model.name or comp_type)
+        
+        self._title_label.setText(display_name)
+        self._type_badge_label.setText(model.name if model.name != display_name else "")
+        self._type_badge_label.setVisible(bool(model.name and model.name != display_name))
+        
+        has_desc = comp_type in COMPONENT_INFO
+        self._help_btn.setVisible(has_desc)
+    
     def _create_basic_group(self) -> QGroupBox:
         group = QGroupBox("基础属性")
-        group.setStyleSheet(GROUP_STYLE)
+        group.setStyleSheet(PropertyPanelStyles.GROUP_STYLE)
+        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         layout = QVBoxLayout(group)
-        layout.setSpacing(10)
+        layout.setSpacing(18)
         
         self._id_label = QLabel("-")
         self._id_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -154,12 +283,14 @@ class PropertyPanel(QWidget):
         
         self._name_edit = QLineEdit()
         self._name_edit.setPlaceholderText("输入组件名称")
+        self._name_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._name_edit.textChanged.connect(lambda v: self._on_property_changed("name", v))
         layout.addLayout(self._create_row("名称:", self._name_edit))
         
         self._text_edit = QTextEdit()
         self._text_edit.setPlaceholderText("输入显示文本")
         self._text_edit.setMaximumHeight(80)
+        self._text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._text_edit.textChanged.connect(self._on_text_edit_changed)
         layout.addLayout(self._create_row("文本:", self._text_edit))
         
@@ -173,12 +304,13 @@ class PropertyPanel(QWidget):
     
     def _create_geometry_group(self) -> QGroupBox:
         group = QGroupBox("位置和大小")
-        group.setStyleSheet(GROUP_STYLE)
+        group.setStyleSheet(PropertyPanelStyles.GROUP_STYLE)
+        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         layout = QVBoxLayout(group)
-        layout.setSpacing(10)
+        layout.setSpacing(18)
         
         pos_layout = QHBoxLayout()
-        pos_layout.setSpacing(8)
+        pos_layout.setSpacing(14)
         
         x_label = QLabel("X:")
         x_label.setFixedWidth(20)
@@ -203,7 +335,7 @@ class PropertyPanel(QWidget):
         layout.addLayout(pos_layout)
         
         size_layout = QHBoxLayout()
-        size_layout.setSpacing(8)
+        size_layout.setSpacing(14)
         
         w_label = QLabel("宽:")
         w_label.setFixedWidth(20)
@@ -228,7 +360,7 @@ class PropertyPanel(QWidget):
         layout.addLayout(size_layout)
         
         align_layout = QHBoxLayout()
-        align_layout.setSpacing(8)
+        align_layout.setSpacing(14)
         
         h_align_label = QLabel("水平对齐:")
         h_align_label.setFixedWidth(60)
@@ -260,15 +392,16 @@ class PropertyPanel(QWidget):
     
     def _create_style_group(self) -> QGroupBox:
         group = QGroupBox("样式")
-        group.setStyleSheet(GROUP_STYLE)
+        group.setStyleSheet(PropertyPanelStyles.GROUP_STYLE)
+        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         layout = QVBoxLayout(group)
-        layout.setSpacing(10)
+        layout.setSpacing(18)
         
         style_mode_layout = QHBoxLayout()
-        style_mode_layout.setSpacing(8)
+        style_mode_layout.setSpacing(14)
         
         mode_label = QLabel("样式模式:")
-        mode_label.setFixedWidth(60)
+        mode_label.setFixedWidth(70)
         style_mode_layout.addWidget(mode_label)
         
         self._style_mode_combo = QComboBox()
@@ -284,10 +417,10 @@ class PropertyPanel(QWidget):
         self._custom_style_widget = QWidget()
         custom_layout = QVBoxLayout(self._custom_style_widget)
         custom_layout.setContentsMargins(0, 0, 0, 0)
-        custom_layout.setSpacing(10)
+        custom_layout.setSpacing(18)
         
         colors_layout = QHBoxLayout()
-        colors_layout.setSpacing(8)
+        colors_layout.setSpacing(14)
         
         bg_label = QLabel("背景色:")
         bg_label.setFixedWidth(50)
@@ -312,7 +445,7 @@ class PropertyPanel(QWidget):
         custom_layout.addLayout(colors_layout)
         
         border_layout = QHBoxLayout()
-        border_layout.setSpacing(8)
+        border_layout.setSpacing(14)
         
         border_label = QLabel("边框色:")
         border_label.setFixedWidth(50)
@@ -338,7 +471,7 @@ class PropertyPanel(QWidget):
         custom_layout.addLayout(border_layout)
         
         other_layout = QHBoxLayout()
-        other_layout.setSpacing(8)
+        other_layout.setSpacing(14)
         
         radius_label = QLabel("圆角:")
         radius_label.setFixedWidth(50)
@@ -379,9 +512,10 @@ class PropertyPanel(QWidget):
     
     def _create_type_specific_group(self) -> QGroupBox:
         group = QGroupBox("特定属性")
-        group.setStyleSheet(GROUP_STYLE)
+        group.setStyleSheet(PropertyPanelStyles.GROUP_STYLE)
+        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self._type_layout = QVBoxLayout(group)
-        self._type_layout.setSpacing(10)
+        self._type_layout.setSpacing(18)
         return group
     
     def set_component(self, model: Optional[ComponentModel]):
@@ -393,6 +527,7 @@ class PropertyPanel(QWidget):
                 self._clear()
                 return
             
+            self._update_title_header(model)
             self._id_label.setText(model.id)
             self._type_label.setText(model.type)
             self._name_edit.setText(model.name)
@@ -426,6 +561,10 @@ class PropertyPanel(QWidget):
             self._updating = False
     
     def _clear(self):
+        self._title_label.setText("未选择")
+        self._help_btn.setVisible(False)
+        self._type_badge_label.setVisible(False)
+        
         self._id_label.setText("-")
         self._type_label.setText("-")
         self._name_edit.clear()
@@ -517,17 +656,34 @@ class PropertyPanel(QWidget):
             self._add_video_properties(model)
         elif isinstance(model, ProgressBarModel):
             self._add_progressbar_properties(model)
+        elif isinstance(model, ImageCarouselModel):
+            self._add_image_carousel_properties(model)
+        elif isinstance(model, HiddenButtonModel):
+            self._add_hidden_button_properties(model)
+        elif isinstance(model, ImageButtonModel):
+            self._add_image_button_properties(model)
     
     def _clear_type_specific_properties(self):
         while self._type_layout.count():
             item = self._type_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
+            elif item.layout():
+                self._clear_layout_items(item.layout())
+    
+    def _clear_layout_items(self, layout: QLayout):
+        """递归清理布局中的所有子项。"""
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                self._clear_layout_items(item.layout())
     
     def _add_type_row(self, label_text: str, widget_or_layout) -> QHBoxLayout:
         """创建特定属性行。支持 QWidget 或 QLayout 类型。"""
         layout = QHBoxLayout()
-        layout.setSpacing(8)
+        layout.setSpacing(14)
         
         label = QLabel(label_text)
         label.setFixedWidth(70)
@@ -580,6 +736,59 @@ class PropertyPanel(QWidget):
         action_btn = QPushButton("配置行为")
         action_btn.clicked.connect(lambda: self.action_config_requested.emit(model.id))
         self._type_layout.addWidget(action_btn)
+    
+    def _add_image_carousel_properties(self, model: ImageCarouselModel):
+        """添加图片轮播组件属性。"""
+        
+        interval_spin = QSpinBox()
+        interval_spin.setRange(100, 10000)
+        interval_spin.setSingleStep(100)
+        interval_spin.setValue(model.interval)
+        interval_spin.setFixedWidth(80)
+        interval_spin.valueChanged.connect(lambda v: self._on_property_changed("interval", v))
+        self._add_type_row("轮播间隔(ms):", interval_spin)
+        
+        auto_play_check = QCheckBox()
+        auto_play_check.setChecked(model.auto_play)
+        auto_play_check.stateChanged.connect(lambda v: self._on_property_changed("auto_play", bool(v)))
+        self._add_type_row("自动播放:", auto_play_check)
+        
+        loop_check = QCheckBox()
+        loop_check.setChecked(model.loop)
+        loop_check.stateChanged.connect(lambda v: self._on_property_changed("loop", bool(v)))
+        self._add_type_row("循环播放:", loop_check)
+        
+        index_spin = QSpinBox()
+        index_spin.setRange(0, 999)
+        index_spin.setValue(model.current_index)
+        index_spin.setFixedWidth(60)
+        index_spin.valueChanged.connect(lambda v: self._on_property_changed("current_index", v))
+        self._add_type_row("当前索引:", index_spin)
+    
+    def _add_hidden_button_properties(self, model: HiddenButtonModel):
+        """添加隐藏按钮组件属性。"""
+        
+        info_label = QLabel("透明可点击按钮，用于创建热区")
+        info_label.setStyleSheet("color: #888; font-size: 11px;")
+        info_label.setWordWrap(True)
+        self._type_layout.addWidget(info_label)
+    
+    def _add_image_button_properties(self, model: ImageButtonModel):
+        """添加图片按钮组件属性。"""
+        
+        path_layout = QHBoxLayout()
+        path_edit = QLineEdit()
+        path_edit.setText(model.image_path or "")
+        path_edit.textChanged.connect(lambda v: self._on_property_changed("image_path", v))
+        path_edit.setPlaceholderText("按钮图片路径")
+        path_layout.addWidget(path_edit)
+        
+        browse_btn = QPushButton("浏览...")
+        browse_btn.setFixedWidth(60)
+        browse_btn.clicked.connect(self._browse_image_file)
+        path_layout.addWidget(browse_btn)
+        
+        self._add_type_row("图片路径:", path_layout)
     
     def _add_image_properties(self, model: ImageModel):
         """添加图片组件属性。"""

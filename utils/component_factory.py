@@ -7,7 +7,8 @@
 from typing import Dict, Any, Optional
 from PySide6.QtWidgets import (
     QWidget, QPushButton, QLabel, QLineEdit, QTextEdit,
-    QCheckBox, QComboBox, QListWidget, QGroupBox, QProgressBar
+    QCheckBox, QComboBox, QListWidget, QGroupBox, QProgressBar,
+    QVBoxLayout, QHBoxLayout
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QFontMetrics
@@ -15,7 +16,8 @@ from PySide6.QtGui import QFont, QFontMetrics
 from models.base import ComponentModel, StyleConfig
 from models.components import (
     ButtonModel, LabelModel, InputModel, ContainerModel,
-    CheckBoxModel, ComboBoxModel, ProgressBarModel
+    CheckBoxModel, ComboBoxModel, ProgressBarModel,
+    HiddenButtonModel, ImageButtonModel, ImageCarouselModel
 )
 
 
@@ -233,6 +235,11 @@ class ComponentFactory:
             'groupbox': ComponentFactory._create_groupbox,
             'container': ComponentFactory._create_container,
             'progressbar': ComponentFactory._create_progressbar,
+            'hidden_button': ComponentFactory._create_hidden_button,
+            'image_button': ComponentFactory._create_image_button,
+            'image_carousel': ComponentFactory._create_image_carousel,
+            'image': ComponentFactory._create_image,
+            'video': ComponentFactory._create_video,
         }
         
         creator = creators.get(comp_type)
@@ -408,6 +415,164 @@ class ComponentFactory:
         
         StyleHelper.apply_style(progressbar, model.style)
         return progressbar
+    
+    @staticmethod
+    def _create_hidden_button(model: HiddenButtonModel) -> QPushButton:
+        """创建隐藏按钮（透明但可点击）。"""
+        button = QPushButton()
+        button.setText("")
+        button.resize(model.width, model.height)
+        button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: rgba(200, 200, 200, 0.1);
+            }
+        """)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        return button
+    
+    @staticmethod
+    def _create_image_button(model: ImageButtonModel) -> QPushButton:
+        """创建图片按钮。"""
+        from PySide6.QtGui import QIcon, QPixmap
+        
+        button = QPushButton()
+        button.setText("")
+        button.resize(model.width, model.height)
+        
+        image_path = getattr(model, 'image_path', '')
+        if image_path:
+            try:
+                pixmap = QPixmap(image_path)
+                if not pixmap.isNull():
+                    icon = QIcon(pixmap)
+                    button.setIcon(icon)
+                    button.setIconSize(pixmap.size())
+            except Exception:
+                pass
+        
+        StyleHelper.apply_style(button, model.style)
+        return button
+    
+    @staticmethod
+    def _create_image_carousel(model: ImageCarouselModel) -> QWidget:
+        """创建图片轮播控件。"""
+        from PySide6.QtWidgets import QLabel, QVBoxLayout
+        from PySide6.QtGui import QPixmap
+        
+        container = QWidget()
+        container.resize(model.width, model.height)
+        container.setProperty("component_model", model)
+        
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
+        
+        images = getattr(model, 'images', [])
+        current_index = getattr(model, 'current_index', 0)
+        image_labels = getattr(model, 'image_labels', [])
+        
+        label = QLabel()
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        if images and 0 <= current_index < len(images):
+            image_path = images[current_index]
+            try:
+                pixmap = QPixmap(image_path)
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(
+                        model.width - 10, model.height - 30,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    label.setPixmap(scaled_pixmap)
+                else:
+                    display_text = image_labels[current_index] if current_index < len(image_labels) else f"图片{current_index + 1}"
+                    label.setText(display_text)
+            except Exception:
+                display_text = image_labels[current_index] if current_index < len(image_labels) else "加载失败"
+                label.setText(display_text)
+        elif image_labels:
+            label.setText(image_labels[0])
+        else:
+            label.setText("图片轮播")
+        
+        layout.addWidget(label)
+        
+        indicator_label = QLabel()
+        indicator_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        if images:
+            indicator_label.setText(f"{current_index + 1} / {len(images)}")
+        layout.addWidget(indicator_label)
+        
+        StyleHelper.apply_style(container, model.style)
+        
+        return container
+    
+    @staticmethod
+    def _create_image(model) -> QWidget:
+        """创建图片控件。"""
+        from PySide6.QtWidgets import QLabel
+        from PySide6.QtGui import QPixmap
+        
+        label = QLabel()
+        label.resize(model.width, model.height)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        image_path = getattr(model, 'image_path', '')
+        if image_path:
+            try:
+                pixmap = QPixmap(image_path)
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(
+                        model.width, model.height,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    label.setPixmap(scaled_pixmap)
+                else:
+                    label.setText(getattr(model, 'placeholder_text', '') or "图片")
+            except Exception:
+                label.setText(getattr(model, 'placeholder_text', '') or "加载失败")
+        else:
+            label.setText(getattr(model, 'placeholder_text', '') or "图片")
+        
+        StyleHelper.apply_style(label, model.style)
+        return label
+    
+    @staticmethod
+    def _create_video(model) -> QWidget:
+        """创建视频控件。"""
+        from PySide6.QtWidgets import QLabel, QVBoxLayout, QPushButton
+        from PySide6.QtMultimediaWidgets import QVideoWidget
+        
+        container = QWidget()
+        container.resize(model.width, model.height)
+        
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        try:
+            video_widget = QVideoWidget()
+            video_widget.setMinimumSize(model.width, model.height - 40)
+            layout.addWidget(video_widget)
+            
+            controls = QHBoxLayout()
+            play_btn = QPushButton("播放")
+            stop_btn = QPushButton("停止")
+            controls.addWidget(play_btn)
+            controls.addWidget(stop_btn)
+            layout.addLayout(controls)
+        except ImportError:
+            fallback_label = QLabel("视频组件 (需要PySide6多媒体支持)")
+            fallback_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(fallback_label)
+        
+        StyleHelper.apply_style(container, model.style)
+        return container
     
     @staticmethod
     def update_widget(widget: QWidget, model: ComponentModel):

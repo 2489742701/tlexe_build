@@ -4,6 +4,7 @@ from .base import ComponentModel, ProjectModel, ActionConfig, StyleConfig
 from .components import (
     ButtonModel, LabelModel, InputModel, ContainerModel,
     CheckBoxModel, ComboBoxModel, ImageModel, VideoModel, ProgressBarModel,
+    HiddenButtonModel, ImageButtonModel, ImageCarouselModel,
     create_component, COMPONENT_TYPE_MAP
 )
 from .window import WindowModel, WindowType, ActionType, ActionDefinition, DEFAULT_ACTIONS
@@ -44,6 +45,9 @@ __all__ = [
     'ImageModel',
     'VideoModel',
     'ProgressBarModel',
+    'HiddenButtonModel',
+    'ImageButtonModel',
+    'ImageCarouselModel',
     'create_component',
     'COMPONENT_TYPE_MAP',
     'WindowModel',

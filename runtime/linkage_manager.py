@@ -22,6 +22,11 @@ if TYPE_CHECKING:
     from runtime.action_executor import ActionExecutor
 
 
+def _log_debug(message: str):
+    """调试日志输出。"""
+    print(f"[LinkageManager] {message}")
+
+
 class LinkageManager(QObject):
     """组件联动管理器。
     
@@ -82,24 +87,37 @@ class LinkageManager(QObject):
         params = linkage.get('params', {})
         
         if not all([source_id, source_event, target_id, target_action]):
+            missing = [k for k in ['source_component', 'source_event', 'target_component', 'target_action'] 
+                      if not locals().get(k.replace('component', '').replace('event', '_event').replace('action', '_action'))]
+            _log_debug(f"联动配置不完整，缺少字段: {missing}")
             return
         
         source_component = self._project_model.get_component(source_id)
         target_component = self._project_model.get_component(target_id)
         
         if not source_component or not target_component:
+            missing = []
+            if not source_component:
+                missing.append(f"源组件 {source_id}")
+            if not target_component:
+                missing.append(f"目标组件 {target_id}")
+            _log_debug(f"联动组件不存在: {', '.join(missing)}")
             return
         
         signal = getattr(source_component, source_event, None)
         if not signal or not hasattr(signal, 'connect'):
+            _log_debug(f"源组件 {source_id} 不存在信号 {source_event}")
             return
         
         def on_source_event(*args, **kwargs):
-            processed_params = self._process_params(params, args, kwargs, source_component)
-            
-            self._execute_action(target_component, target_action, processed_params, args, kwargs, source_component)
-            
-            self.linkage_triggered.emit(source_id, target_id, target_action)
+            try:
+                processed_params = self._process_params(params, args, kwargs, source_component)
+                
+                self._execute_action(target_component, target_action, processed_params, args, kwargs, source_component)
+                
+                self.linkage_triggered.emit(source_id, target_id, target_action)
+            except Exception as e:
+                _log_debug(f"联动执行失败 [{source_id}->{target_id}]: {type(e).__name__}: {e}")
         
         try:
             signal.connect(on_source_event)
@@ -108,8 +126,9 @@ class LinkageManager(QObject):
                 'callback': on_source_event,
                 'linkage': linkage
             })
+            _log_debug(f"联动已连接: {source_id}.{source_event} -> {target_id}.{target_action}")
         except Exception as e:
-            print(f"联动连接失败: {e}")
+            _log_debug(f"联动连接失败 [{source_id}->{target_id}]: {type(e).__name__}: {e}")
     
     def _execute_action(self, target_component, action: str, params: Dict[str, Any], 
                         args: tuple, kwargs: dict, source_component):
@@ -212,14 +231,18 @@ class LinkageManager(QObject):
     def _replace_templates(self, template: str, args: tuple, kwargs: dict, source_component) -> str:
         """替换模板占位符。
         
+        优先级规则（高到低）:
+        1. 信号参数 (args[1]) - 最高优先级，来自信号发射时的参数
+        2. 组件属性 - 来自源组件的属性值
+        
         支持的占位符:
         - {winner}: 中奖者名称（从image_labels获取）
         - {index}: 中奖索引
-        - {image}: 中奖图片路径
-        - {value}: 数值
-        - {text}: 文本内容
-        - {source}: 源路径
-        - {count}: 总数
+        - {image}: 图片路径（优先使用信号参数，否则从images列表获取）
+        - {source}: 源路径（仅信号参数）
+        - {text}: 文本内容（优先使用信号参数，否则从组件属性获取）
+        - {value}: 数值（优先使用信号参数，否则从组件属性获取）
+        - {count}: 总数（仅组件属性）
         
         Args:
             template: 模板字符串
@@ -230,46 +253,49 @@ class LinkageManager(QObject):
         Returns:
             替换后的字符串
         """
-        result = template
+        if not template:
+            return template
+        
+        replacements = {}
         
         if args:
-            if len(args) >= 1:
-                index = args[0]
-                result = result.replace('{index}', str(index))
-                
-                if hasattr(source_component, 'images'):
-                    try:
-                        idx = int(index) if isinstance(index, (int, float, str)) else 0
-                        if 0 <= idx < len(source_component.images):
-                            image_path = source_component.images[idx]
-                            result = result.replace('{image}', str(image_path))
-                    except (ValueError, TypeError):
-                        pass
-                
-                if hasattr(source_component, 'image_labels'):
-                    try:
-                        idx = int(index) if isinstance(index, (int, float, str)) else 0
-                        if 0 <= idx < len(source_component.image_labels):
-                            winner_name = source_component.image_labels[idx]
-                            result = result.replace('{winner}', str(winner_name))
-                    except (ValueError, TypeError):
-                        pass
-                
-                if hasattr(source_component, 'images'):
-                    result = result.replace('{count}', str(len(source_component.images)))
+            index = args[0] if len(args) >= 1 else None
+            second_arg = args[1] if len(args) >= 2 else None
             
-            if len(args) >= 2:
-                second_arg = args[1]
-                result = result.replace('{image}', str(second_arg))
-                result = result.replace('{source}', str(second_arg))
-                result = result.replace('{text}', str(second_arg))
-                result = result.replace('{value}', str(second_arg))
+            if index is not None:
+                replacements['{index}'] = str(index)
+                
+                try:
+                    idx = int(index) if isinstance(index, (int, float, str)) else 0
+                    
+                    if hasattr(source_component, 'image_labels') and 0 <= idx < len(source_component.image_labels):
+                        replacements['{winner}'] = str(source_component.image_labels[idx])
+                    
+                    if hasattr(source_component, 'images'):
+                        if 0 <= idx < len(source_component.images):
+                            image_path = str(source_component.images[idx])
+                            if '{image}' not in replacements:
+                                replacements['{image}'] = image_path
+                        
+                        replacements['{count}'] = str(len(source_component.images))
+                except (ValueError, TypeError):
+                    pass
+            
+            if second_arg is not None:
+                replacements['{source}'] = str(second_arg)
+                replacements['{text}'] = str(second_arg)
+                replacements['{value}'] = str(second_arg)
+                replacements['{image}'] = str(second_arg)
         
-        if hasattr(source_component, 'text'):
-            result = result.replace('{text}', str(source_component.text))
+        if '{text}' not in replacements and hasattr(source_component, 'text'):
+            replacements['{text}'] = str(source_component.text)
         
-        if hasattr(source_component, 'value'):
-            result = result.replace('{value}', str(source_component.value))
+        if '{value}' not in replacements and hasattr(source_component, 'value'):
+            replacements['{value}'] = str(source_component.value)
+        
+        result = template
+        for placeholder, value in replacements.items():
+            result = result.replace(placeholder, value)
         
         return result
     

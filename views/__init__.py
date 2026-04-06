@@ -3,6 +3,9 @@
 ## 修复说明 (2026-04-02)
 将 property_panel 目录重命名为 property_editors，
 避免与 property_panel.py 文件产生命名冲突。
+
+## 修复说明 (2026-04-06)
+新增 SplashWindow 启动画面组件。
 """
 
 from .main_window import MainWindow
@@ -18,6 +21,7 @@ from .welcome_page import WelcomePage
 from .component_panel import ComponentPanel
 from .signal_manager import SignalManagerPanel, SignalEditDialog
 from .state_machine_view import StateMachineView, StateMachineModel, StateNodeData, TransitionData
+from .splash_window import SplashWindow
 
 __all__ = [
     'MainWindow',
@@ -37,4 +41,5 @@ __all__ = [
     'StateMachineModel',
     'StateNodeData',
     'TransitionData',
+    'SplashWindow',
 ]

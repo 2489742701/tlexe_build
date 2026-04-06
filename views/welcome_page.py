@@ -266,6 +266,7 @@ class WelcomePage(QWidget):
         examples = [
             ("Galgame示例项目", "一个完整的Galgame风格示例", "samples/galgame示例.itexe"),
             ("电脑开机检测演示", "一个有趣的恶搞程序模板", "templates/test_template.py"),
+            ("年会抽奖", "组件联动系统演示（lottery_animation + set_text）", "samples/年会抽奖示例.itexe"),
         ]
         
         for i, (title, desc, path) in enumerate(examples):

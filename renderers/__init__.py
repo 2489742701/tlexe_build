@@ -29,6 +29,7 @@ from .hidden_button_renderer import HiddenButtonRenderer
 from .image_button_renderer import ImageButtonRenderer
 from .image_carousel_renderer import ImageCarouselRenderer
 from .renderer_factory import RendererFactory
+from .renderer_factory_v2 import RendererFactoryV2
 
 __all__ = [
     'ComponentRenderer',
@@ -43,4 +44,5 @@ __all__ = [
     'ImageButtonRenderer',
     'ImageCarouselRenderer',
     'RendererFactory',
+    'RendererFactoryV2',
 ]
