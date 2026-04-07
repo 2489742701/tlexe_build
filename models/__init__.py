@@ -5,6 +5,7 @@ from .components import (
     ButtonModel, LabelModel, InputModel, ContainerModel,
     CheckBoxModel, ComboBoxModel, ImageModel, VideoModel, ProgressBarModel,
     HiddenButtonModel, ImageButtonModel, ImageCarouselModel,
+    GroupNodeModel,
     create_component, COMPONENT_TYPE_MAP
 )
 from .window import WindowModel, WindowType, ActionType, ActionDefinition, DEFAULT_ACTIONS
@@ -30,6 +31,11 @@ from .model_helpers import (
     validated_property,
     SignalBlocker
 )
+from .tech_components import (
+    TechComponentManager,
+    TechComponentTemplate,
+    TECH_TEMPLATES
+)
 
 __all__ = [
     'ComponentModel',
@@ -48,6 +54,7 @@ __all__ = [
     'HiddenButtonModel',
     'ImageButtonModel',
     'ImageCarouselModel',
+    'GroupNodeModel',
     'create_component',
     'COMPONENT_TYPE_MAP',
     'WindowModel',
@@ -76,4 +83,8 @@ __all__ = [
     'SizeProperty',
     'validated_property',
     'SignalBlocker',
+    # 新增：技术类控件
+    'TechComponentManager',
+    'TechComponentTemplate',
+    'TECH_TEMPLATES',
 ]

@@ -3,7 +3,7 @@
 本模块包含各种组件模型的具体实现。
 """
 
-from typing import Dict, Any, Optional, Type
+from typing import Dict, Any, Optional, Type, List
 from PySide6.QtCore import Signal
 from .base import ComponentModel
 
@@ -1265,6 +1265,149 @@ class ImageCarouselModel(ComponentModel):
             self._lottery_timer.stop()
 
 
+class GroupNodeModel(ComponentModel):
+    """组节点模型。
+    
+    组节点是一个特殊的组件类型，用于将多个组件组合在一起。
+    组节点可以包含子组件，并提供统一的布局管理。
+    
+    Attributes:
+        children: 子组件ID列表
+        layout_mode: 布局模式 (none, vertical, horizontal, grid)
+        spacing: 子组件间距
+        padding: 内边距
+        auto_size: 是否自动调整大小以适应子组件
+    """
+    
+    def __init__(self, name: str = "", x: int = 0, y: int = 0,
+                 width: int = 300, height: int = 200, text: str = "",
+                 parent_id: str = ""):
+        super().__init__("group_node", name, x, y, width, height, text, parent_id)
+        self._children: List[str] = []
+        self._layout_mode: str = "none"
+        self._spacing: int = 10
+        self._padding: int = 10
+        self._auto_size: bool = False
+        self._show_border: bool = True
+        self._border_style: str = "dashed"
+        
+        self._style.background_color = "transparent"
+        self._style.border_color = "#999999"
+        self._style.border_width = 1
+        self._style.border_radius = 5
+    
+    @property
+    def children(self) -> List[str]:
+        return self._children.copy()
+    
+    @children.setter
+    def children(self, value: List[str]):
+        if self._children != value:
+            self._children = value
+            self.data_changed.emit()
+    
+    def add_child(self, child_id: str) -> None:
+        """添加子组件。"""
+        if child_id not in self._children:
+            self._children.append(child_id)
+            self.data_changed.emit()
+    
+    def remove_child(self, child_id: str) -> None:
+        """移除子组件。"""
+        if child_id in self._children:
+            self._children.remove(child_id)
+            self.data_changed.emit()
+    
+    def has_child(self, child_id: str) -> bool:
+        """检查是否包含指定子组件。"""
+        return child_id in self._children
+    
+    @property
+    def layout_mode(self) -> str:
+        return self._layout_mode
+    
+    @layout_mode.setter
+    def layout_mode(self, value: str):
+        valid_modes = ['none', 'vertical', 'horizontal', 'grid']
+        if value in valid_modes and self._layout_mode != value:
+            self._layout_mode = value
+            self.data_changed.emit()
+    
+    @property
+    def spacing(self) -> int:
+        return self._spacing
+    
+    @spacing.setter
+    def spacing(self, value: int):
+        if value >= 0 and self._spacing != value:
+            self._spacing = value
+            self.data_changed.emit()
+    
+    @property
+    def padding(self) -> int:
+        return self._padding
+    
+    @padding.setter
+    def padding(self, value: int):
+        if value >= 0 and self._padding != value:
+            self._padding = value
+            self.data_changed.emit()
+    
+    @property
+    def auto_size(self) -> bool:
+        return self._auto_size
+    
+    @auto_size.setter
+    def auto_size(self, value: bool):
+        if self._auto_size != value:
+            self._auto_size = value
+            self.data_changed.emit()
+    
+    @property
+    def show_border(self) -> bool:
+        return self._show_border
+    
+    @show_border.setter
+    def show_border(self, value: bool):
+        if self._show_border != value:
+            self._show_border = value
+            self.data_changed.emit()
+    
+    @property
+    def border_style(self) -> str:
+        return self._border_style
+    
+    @border_style.setter
+    def border_style(self, value: str):
+        valid_styles = ['solid', 'dashed', 'dotted', 'none']
+        if value in valid_styles and self._border_style != value:
+            self._border_style = value
+            self.data_changed.emit()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        data = super().to_dict()
+        data['children'] = self._children
+        data['layout_mode'] = self._layout_mode
+        data['spacing'] = self._spacing
+        data['padding'] = self._padding
+        data['auto_size'] = self._auto_size
+        data['show_border'] = self._show_border
+        data['border_style'] = self._border_style
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'GroupNodeModel':
+        instance = super().from_dict(data)
+        instance._children = data.get('children', [])
+        instance._layout_mode = data.get('layout_mode', 'none')
+        instance._spacing = data.get('spacing', 10)
+        instance._padding = data.get('padding', 10)
+        instance._auto_size = data.get('auto_size', False)
+        instance._show_border = data.get('show_border', True)
+        instance._border_style = data.get('border_style', 'dashed')
+        return instance
+
+
 COMPONENT_TYPE_MAP: Dict[str, Type[ComponentModel]] = {
     'button': ButtonModel,
     'label': LabelModel,
@@ -1278,6 +1421,7 @@ COMPONENT_TYPE_MAP: Dict[str, Type[ComponentModel]] = {
     'hidden_button': HiddenButtonModel,
     'image_button': ImageButtonModel,
     'image_carousel': ImageCarouselModel,
+    'group_node': GroupNodeModel,
 }
 
 

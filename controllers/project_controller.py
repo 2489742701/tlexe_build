@@ -338,13 +338,25 @@ class ProjectController:
     def _on_add_component(self, comp_type: str, parent_id: str):
         """添加组件。"""
         from utils.settings import app_settings
+        from models import TechComponentManager
         
         if not self.project_model.current_window:
             if app_settings.show_create_window_hint:
                 self._show_create_window_hint()
             return
         
+        tech_templates = TechComponentManager.get_available_templates()
+        if comp_type in tech_templates:
+            self._add_tech_component(comp_type, parent_id)
+        else:
+            self._add_single_component(comp_type, parent_id)
+    
+    def _add_single_component(self, comp_type: str, parent_id: str):
+        """添加单个组件。"""
         comp = create_component(comp_type)
+        if parent_id:
+            comp.parent_id = parent_id
+        
         comp_data = comp.to_dict()
         self.project_model.add_component(comp)
         
@@ -366,6 +378,53 @@ class ProjectController:
             redo_callback=redo_add
         )
         self.window.show_status_message(f"已添加: {comp.name}")
+    
+    def _add_tech_component(self, template_id: str, parent_id: str):
+        """添加技术类控件组件。"""
+        from models import TechComponentManager
+        
+        try:
+            components = TechComponentManager.create_tech_component(
+                template_id,
+                parent_id=parent_id,
+                offset_x=50,
+                offset_y=50
+            )
+            
+            comp_data_list = []
+            for comp in components:
+                if parent_id:
+                    comp.parent_id = parent_id
+                self.project_model.add_component(comp)
+                comp_data_list.append(comp.to_dict())
+            
+            def undo_add_tech(data_list):
+                for data in data_list:
+                    comp_id = data.get('id')
+                    if comp_id:
+                        self.project_model.remove_component(comp_id)
+            
+            def redo_add_tech(data_list):
+                for data in data_list:
+                    new_comp = ComponentModel.from_dict(data)
+                    self.project_model.add_component(new_comp)
+            
+            template_info = TechComponentManager.get_template_info(template_id)
+            display_name = template_info.get('display_name', template_id)
+            
+            self._undo_manager.push(
+                action_type='add',
+                description=f"添加技术类控件: {display_name}",
+                undo_data=comp_data_list,
+                redo_data=comp_data_list,
+                undo_callback=undo_add_tech,
+                redo_callback=redo_add_tech
+            )
+            
+            self.window.show_status_message(f"已添加技术类控件: {display_name} ({len(components)}个组件)")
+            
+        except Exception as e:
+            self.window.show_status_message(f"添加技术类控件失败: {str(e)}")
     
     def _show_create_window_hint(self):
         """显示创建窗口提示对话框。"""

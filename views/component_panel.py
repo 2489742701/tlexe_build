@@ -2,6 +2,12 @@
 
 本模块包含组件面板的实现，提供分类的组件选择功能。
 支持功能类、媒体类、容器类、输入类等组件分类。
+
+## 更新说明 (2026-04-07)
+【改进】使用黑白SVG图标替换文本图标，提升视觉效果
+- 导入 IconManager 管理图标资源
+- ComponentButton 使用真实图标而非文本符号
+- 支持SVG和Unicode两种图标格式
 """
 
 from typing import Dict, List, Optional
@@ -9,11 +15,19 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
     QLabel, QPushButton, QFrame, QSizePolicy
 )
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt, Signal, QSize
+from PySide6.QtGui import QFont, QIcon
+
+from utils.icon_manager import IconManager
 
 
 COMPONENT_CATEGORIES: Dict[str, Dict[str, str]] = {
+    "技术类": {
+        "lottery": "抽奖系统",
+        "login": "登录表单",
+        "form": "表单组",
+        "progress_panel": "进度面板",
+    },
     "功能类": {
         "button": "按钮",
         "checkbox": "复选框",
@@ -29,6 +43,7 @@ COMPONENT_CATEGORIES: Dict[str, Dict[str, str]] = {
     },
     "容器类": {
         "container": "容器",
+        "group_node": "组节点",
     },
     "输入类": {
         "input": "输入框",
@@ -58,6 +73,7 @@ class ComponentButton(QPushButton):
     """组件按钮。
     
     用于在组件面板中显示单个组件选项。
+    使用黑白SVG图标提升视觉效果。
     """
     
     def __init__(self, comp_type: str, display_name: str, parent=None):
@@ -65,8 +81,10 @@ class ComponentButton(QPushButton):
         self._comp_type = comp_type
         self._display_name = display_name
         
-        icon = COMPONENT_ICONS.get(comp_type, "📄")
-        self.setText(f"{icon} {display_name}")
+        icon = IconManager.get_icon(comp_type, use_svg=True)
+        self.setIcon(icon)
+        self.setIconSize(QSize(20, 20))
+        self.setText(display_name)
         self.setStyleSheet("""
             QPushButton {
                 text-align: left;
