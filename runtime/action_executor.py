@@ -260,22 +260,29 @@ class ActionExecutor(QObject):
     def _lottery_animation(self, component_id: str, params: Dict[str, Any]) -> bool:
         """执行抽奖动画。
         
-        图片快速轮播，然后逐渐减速停止在随机位置。
+        支持图片轮播（ImageCarouselModel）和文字轮播（LabelModel）。
         
         Args:
-            component_id: 目标组件ID（图片轮播组件）
+            component_id: 目标组件ID
             params: 动画参数
                 - duration_ms: 动画时长（毫秒），默认3000
+                - candidates: 候选人列表（仅 LabelModel 有效）
                 
         Returns:
             是否成功
         """
-        from models.components import ImageCarouselModel
+        from models.components import ImageCarouselModel, LabelModel
         
         component = self._project_model.get_component(component_id)
+        duration_ms = params.get("duration_ms", 3000)
+        
         if isinstance(component, ImageCarouselModel):
-            duration_ms = params.get("duration_ms", 3000)
             component.lottery_animation(duration_ms=duration_ms)
+            self.action_executed.emit("lottery_animation", True)
+            return True
+        elif isinstance(component, LabelModel):
+            candidates = params.get("candidates", None)
+            component.lottery_animation(candidates=candidates, duration_ms=duration_ms)
             self.action_executed.emit("lottery_animation", True)
             return True
         return False

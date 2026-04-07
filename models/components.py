@@ -177,6 +177,52 @@ class LabelModel(ComponentModel):
         instance._word_wrap = data.get('word_wrap', True)
         instance._auto_size = data.get('auto_size', True)
         return instance
+    
+    def lottery_animation(self, candidates: list = None, duration_ms: int = 3000, on_finished=None):
+        """执行文字抽奖动画。
+        
+        文字快速轮播，然后逐渐减速停止在随机位置。
+        
+        Args:
+            candidates: 候选人列表，如果为 None 则从 text 属性解析
+            duration_ms: 动画总时长（毫秒）
+            on_finished: 动画完成回调函数，参数为选中的文字
+        """
+        import random
+        
+        if candidates is None:
+            candidates = [c.strip() for c in self.text.split('\n') if c.strip()]
+        
+        if len(candidates) < 2:
+            return
+        
+        final_text = random.choice(candidates)
+        final_index = candidates.index(final_text)
+        
+        from PySide6.QtCore import QTimer, QElapsedTimer, QEasingCurve
+        
+        elapsed_timer = QElapsedTimer()
+        elapsed_timer.start()
+        
+        def update_animation():
+            elapsed = elapsed_timer.elapsed()
+            progress = min(elapsed / duration_ms, 1.0)
+            
+            easing = QEasingCurve(QEasingCurve.Type.OutQuart)
+            eased_progress = easing.valueForProgress(progress)
+            
+            if progress < 1.0:
+                speed = int(50 + eased_progress * 200)
+                current_idx = int(elapsed / speed) % len(candidates)
+                self.text = candidates[current_idx]
+            else:
+                self.text = final_text
+                if on_finished:
+                    on_finished(final_text)
+        
+        self._lottery_timer = QTimer()
+        self._lottery_timer.timeout.connect(update_animation)
+        self._lottery_timer.start(50)
 
 
 class InputModel(ComponentModel):
