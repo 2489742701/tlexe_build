@@ -22,6 +22,7 @@ from .component_panel import ComponentPanel
 from .signal_manager import SignalManagerPanel, SignalEditDialog
 from .state_machine_view import StateMachineView, StateMachineModel, StateNodeData, TransitionData
 from .splash_window import SplashWindow
+from .variable_panel import VariablePanel, get_player_name, set_player_name, get_variable, set_variable
 
 __all__ = [
     'MainWindow',
@@ -42,4 +43,9 @@ __all__ = [
     'StateNodeData',
     'TransitionData',
     'SplashWindow',
+    'VariablePanel',
+    'get_player_name',
+    'set_player_name',
+    'get_variable',
+    'set_variable',
 ]

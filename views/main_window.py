@@ -697,6 +697,28 @@ class MainWindow(QMainWindow):
         run_btn.setDefaultAction(run_full_action)
         run_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         toolbar.addWidget(run_btn)
+        
+        toolbar.addSeparator()
+        
+        player_label = QLabel("Player:")
+        player_label.setStyleSheet("color: #666; font-size: 12px;")
+        toolbar.addWidget(player_label)
+        
+        from models.variable_system import get_variable_manager
+        self._player_name_edit = QLineEdit()
+        self._player_name_edit.setPlaceholderText("Enter name...")
+        self._player_name_edit.setText(get_variable_manager().get_variable("player_name", ""))
+        self._player_name_edit.setFixedWidth(150)
+        self._player_name_edit.setStyleSheet("""
+            QLineEdit {
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                padding: 2px 5px;
+                font-size: 12px;
+            }
+        """)
+        self._player_name_edit.textChanged.connect(self._on_player_name_changed)
+        toolbar.addWidget(self._player_name_edit)
     
     def _init_statusbar(self):
         """初始化状态栏。"""
@@ -736,6 +758,11 @@ class MainWindow(QMainWindow):
         zoom_layout.addWidget(zoom_reset_btn)
         
         self.statusbar.addPermanentWidget(zoom_widget)
+    
+    def _on_player_name_changed(self, name: str):
+        """处理玩家名改变。"""
+        from models.variable_system import get_variable_manager, VariableType
+        get_variable_manager().set_variable("player_name", name, VariableType.NAME, "Player name")
     
     def _on_open_project(self):
         """打开项目对话框。"""
