@@ -32,7 +32,8 @@ from PySide6.QtGui import QColor
 from models import (
     ComponentModel, ButtonModel, LabelModel, InputModel, 
     ContainerModel, CheckBoxModel, ComboBoxModel, ImageModel, VideoModel, ProgressBarModel,
-    HiddenButtonModel, ImageButtonModel, ImageCarouselModel
+    HiddenButtonModel, ImageButtonModel, ImageCarouselModel,
+    TextAlternatingModel, ImageAlternatingModel
 )
 from styles import PropertyPanelStyles, Colors
 
@@ -81,6 +82,8 @@ COMPONENT_INFO: Dict[str, Dict[str, str]] = {
     'hidden_button': {'name': '隐藏按钮', 'desc': '透明但可点击的热区按钮，用于创建不可见的触发区域。'},
     'image_button': {'name': '图片按钮', 'desc': '使用图片作为外观的按钮，支持悬停和按下状态切换。'},
     'image_carousel': {'name': '图片轮播', 'desc': '多张图片轮播展示控件，支持自动播放、抽奖动画。'},
+    'text_alternating': {'name': '文字交替变换', 'desc': '文字组交替变换，支持开始/停止信号控制，减速停在随机位置。'},
+    'image_alternating': {'name': '图片交替变换', 'desc': '图片组交替变换，支持开始/停止信号控制，减速停在随机位置。'},
 }
 
 
@@ -104,6 +107,7 @@ class PropertyPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._current_model: Optional[ComponentModel] = None
+        self._current_window: Optional[object] = None
         self._updating = False
         
         self._setup_ui()
@@ -144,6 +148,7 @@ class PropertyPanel(QWidget):
         self._content_layout.addWidget(self._create_basic_group())
         self._content_layout.addWidget(self._create_geometry_group())
         self._content_layout.addWidget(self._create_style_group())
+        self._content_layout.addWidget(self._create_window_group())
         self._content_layout.addWidget(self._create_type_specific_group())
         self._content_layout.addStretch()
         
@@ -533,6 +538,105 @@ class PropertyPanel(QWidget):
         
         return group
     
+    def _create_window_group(self) -> QGroupBox:
+        """创建窗口属性组"""
+        group = QGroupBox("窗口属性")
+        group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
+        layout = QVBoxLayout(group)
+        layout.setSpacing(10)
+        
+        self._window_frameless_check = QCheckBox("无边框窗口（无顶栏）")
+        self._window_frameless_check.stateChanged.connect(lambda v: self._on_window_property_changed("frameless", v == 2))
+        layout.addWidget(self._window_frameless_check)
+        
+        window_color_layout = QHBoxLayout()
+        window_color_layout.setSpacing(14)
+        
+        window_color_label = QLabel("背景色:")
+        window_color_label.setFixedWidth(50)
+        window_color_layout.addWidget(window_color_label)
+        
+        self._window_color_btn = QPushButton()
+        self._window_color_btn.setFixedSize(50, 24)
+        self._window_color_btn.clicked.connect(self._on_window_color_click)
+        window_color_layout.addWidget(self._window_color_btn)
+        
+        window_color_layout.addStretch()
+        layout.addLayout(window_color_layout)
+        
+        return group
+    
+    def _on_window_property_changed(self, property_name: str, new_value):
+        if self._updating or self._current_window is None:
+            return
+        
+        old_value = getattr(self._current_window, property_name, None)
+        if old_value == new_value:
+            return
+        
+        setattr(self._current_window, property_name, new_value)
+        self.property_changed.emit("", property_name, old_value, new_value)
+    
+    def _on_window_color_click(self):
+        if self._current_window is None:
+            return
+        
+        color = QColorDialog.getColor(
+            QColor(self._current_window.window_color or "#ffffff"),
+            self,
+            "选择窗口背景色"
+        )
+        if color.isValid():
+            self._update_color_btn(self._window_color_btn, color.name())
+            self._on_window_property_changed("window_color", color.name())
+    
+    def set_window(self, window_model):
+        """设置窗口属性编辑"""
+        self._current_model = None
+        self._current_window = window_model
+        self._updating = True
+        
+        try:
+            if window_model is None:
+                self._clear_window()
+                return
+            
+            self._title_label.setText("窗口属性")
+            self._help_btn.setVisible(False)
+            self._type_badge_label.setVisible(False)
+            self._id_label.setText(window_model.id)
+            self._type_label.setText("window")
+            
+            self._window_frameless_check.setChecked(window_model.frameless)
+            self._update_color_btn(self._window_color_btn, window_model.window_color or "#ffffff")
+            
+            self.setEnabled(True)
+        finally:
+            self._updating = False
+    
+    def _clear_window(self):
+        self._title_label.setText("未选择")
+        self._help_btn.setVisible(False)
+        self._type_badge_label.setVisible(False)
+        self._id_label.setText("-")
+        self._type_label.setText("-")
+        self._window_frameless_check.setChecked(False)
+        self._update_color_btn(self._window_color_btn, "#ffffff")
+        self.setEnabled(False)
+    
     def _create_type_specific_group(self) -> QGroupBox:
         group = QGroupBox("特定属性")
         group.setStyleSheet("""
@@ -697,6 +801,8 @@ class PropertyPanel(QWidget):
             self._add_hidden_button_properties(model)
         elif isinstance(model, ImageButtonModel):
             self._add_image_button_properties(model)
+        elif isinstance(model, (TextAlternatingModel, ImageAlternatingModel)):
+            self._add_alternating_properties(model)
     
     def _clear_type_specific_properties(self):
         while self._type_layout.count():
@@ -775,30 +881,145 @@ class PropertyPanel(QWidget):
     def _add_image_carousel_properties(self, model: ImageCarouselModel):
         """添加图片轮播组件属性。"""
         
+        candidates_group = QGroupBox("候选人/奖品列表")
+        candidates_layout = QVBoxLayout(candidates_group)
+        
+        candidates_hint = QLabel("用空格分隔，按空格自动保存：")
+        candidates_hint.setStyleSheet("color: #666; font-size: 11px;")
+        candidates_layout.addWidget(candidates_hint)
+        
+        self._carousel_candidates_edit = QLineEdit()
+        self._carousel_candidates_edit.setPlaceholderText("张三 李四 王五 赵六...")
+        self._carousel_candidates_edit.setText(" ".join(model.image_labels or []))
+        self._carousel_candidates_edit.textChanged.connect(
+            lambda: self._on_candidates_changed_space(model)
+        )
+        candidates_layout.addWidget(self._carousel_candidates_edit)
+        
+        candidates_count_label = QLabel(f"当前数量: {len(model.image_labels or [])}")
+        candidates_count_label.setStyleSheet("color: #888; font-size: 10px;")
+        self._candidates_count_label = candidates_count_label
+        candidates_layout.addWidget(candidates_count_label)
+        
+        self._type_layout.addWidget(candidates_group)
+        
+        images_group = QGroupBox("图片列表（可选）")
+        images_layout = QVBoxLayout(images_group)
+        
+        images_hint = QLabel("用空格分隔图片路径：")
+        images_hint.setStyleSheet("color: #666; font-size: 11px;")
+        images_layout.addWidget(images_hint)
+        
+        self._carousel_images_edit = QLineEdit()
+        self._carousel_images_edit.setPlaceholderText("张三.png 李四.png 王五.png...")
+        self._carousel_images_edit.setText(" ".join(model.images or []))
+        self._carousel_images_edit.textChanged.connect(
+            lambda: self._on_images_changed_space(model)
+        )
+        images_layout.addWidget(self._carousel_images_edit)
+        
+        images_btn_layout = QHBoxLayout()
+        browse_images_btn = QPushButton("选择图片...")
+        browse_images_btn.clicked.connect(lambda: self._browse_carousel_images(model))
+        images_btn_layout.addWidget(browse_images_btn)
+        clear_images_btn = QPushButton("清空")
+        clear_images_btn.setFixedWidth(60)
+        clear_images_btn.clicked.connect(lambda: self._carousel_images_edit.clear())
+        images_btn_layout.addWidget(clear_images_btn)
+        images_btn_layout.addStretch()
+        images_layout.addLayout(images_btn_layout)
+        
+        self._type_layout.addWidget(images_group)
+        
+        lottery_group = QGroupBox("抽奖设置")
+        lottery_layout = QVBoxLayout(lottery_group)
+        
+        duration_layout = QHBoxLayout()
+        duration_label = QLabel("动画时长(ms):")
+        duration_label.setFixedWidth(80)
+        duration_layout.addWidget(duration_label)
+        
+        duration_spin = QSpinBox()
+        duration_spin.setRange(500, 10000)
+        duration_spin.setSingleStep(500)
+        duration_spin.setValue(3000)
+        duration_spin.setFixedWidth(80)
+        duration_spin.valueChanged.connect(lambda v: self._on_property_changed("lottery_duration", v))
+        duration_layout.addWidget(duration_spin)
+        duration_layout.addStretch()
+        lottery_layout.addLayout(duration_layout)
+        
+        self._type_layout.addWidget(lottery_group)
+        
+        playback_group = QGroupBox("播放设置")
+        playback_layout = QVBoxLayout(playback_group)
+        
+        interval_layout = QHBoxLayout()
+        interval_label = QLabel("轮播间隔(ms):")
+        interval_label.setFixedWidth(80)
+        interval_layout.addWidget(interval_label)
+        
         interval_spin = QSpinBox()
         interval_spin.setRange(100, 10000)
         interval_spin.setSingleStep(100)
         interval_spin.setValue(model.interval)
         interval_spin.setFixedWidth(80)
         interval_spin.valueChanged.connect(lambda v: self._on_property_changed("interval", v))
-        self._add_type_row("轮播间隔(ms):", interval_spin)
+        interval_layout.addWidget(interval_spin)
+        interval_layout.addStretch()
+        playback_layout.addLayout(interval_layout)
         
-        auto_play_check = QCheckBox()
+        auto_play_check = QCheckBox("自动播放")
         auto_play_check.setChecked(model.auto_play)
         auto_play_check.stateChanged.connect(lambda v: self._on_property_changed("auto_play", bool(v)))
-        self._add_type_row("自动播放:", auto_play_check)
+        playback_layout.addWidget(auto_play_check)
         
-        loop_check = QCheckBox()
+        loop_check = QCheckBox("循环播放")
         loop_check.setChecked(model.loop)
         loop_check.stateChanged.connect(lambda v: self._on_property_changed("loop", bool(v)))
-        self._add_type_row("循环播放:", loop_check)
+        playback_layout.addWidget(loop_check)
+        
+        index_layout = QHBoxLayout()
+        index_label = QLabel("当前索引:")
+        index_label.setFixedWidth(80)
+        index_layout.addWidget(index_label)
         
         index_spin = QSpinBox()
         index_spin.setRange(0, 999)
         index_spin.setValue(model.current_index)
         index_spin.setFixedWidth(60)
         index_spin.valueChanged.connect(lambda v: self._on_property_changed("current_index", v))
-        self._add_type_row("当前索引:", index_spin)
+        index_layout.addWidget(index_spin)
+        index_layout.addStretch()
+        playback_layout.addLayout(index_layout)
+        
+        self._type_layout.addWidget(playback_group)
+    
+    def _on_candidates_changed_space(self, model: ImageCarouselModel):
+        """候选人列表改变时的处理（空格分隔）。"""
+        text = self._carousel_candidates_edit.text()
+        candidates = [item.strip() for item in text.split() if item.strip()]
+        if hasattr(self, '_candidates_count_label'):
+            self._candidates_count_label.setText(f"当前数量: {len(candidates)}")
+        self._on_property_changed("image_labels", candidates)
+    
+    def _on_images_changed_space(self, model: ImageCarouselModel):
+        """图片列表改变时的处理（空格分隔）。"""
+        text = self._carousel_images_edit.text()
+        images = [item.strip() for item in text.split() if item.strip()]
+        self._on_property_changed("images", images)
+    
+    def _browse_carousel_images(self, model: ImageCarouselModel):
+        """选择图片文件。"""
+        files, _ = QFileDialog.getOpenFileNames(
+            self, "选择图片文件", "", 
+            "图片文件 (*.png *.jpg *.jpeg *.bmp *.gif);;所有文件 (*.*)"
+        )
+        if files:
+            current_text = self._carousel_images_edit.text()
+            current_images = [item.strip() for item in current_text.split() if item.strip()]
+            new_images = current_images + files
+            self._carousel_images_edit.setText(" ".join(new_images))
     
     def _add_hidden_button_properties(self, model: HiddenButtonModel):
         """添加隐藏按钮组件属性。"""
@@ -824,6 +1045,32 @@ class PropertyPanel(QWidget):
         path_layout.addWidget(browse_btn)
         
         self._add_type_row("图片路径:", path_layout)
+    
+    def _add_alternating_properties(self, model):
+        """添加交替变换组件属性（文字/图片通用）。"""
+        
+        display_mode = getattr(model, 'display_mode', 'text')
+        mode_label = QLabel("文字模式" if display_mode == 'text' else "图片模式")
+        mode_label.setStyleSheet("color: #2196F3; font-weight: bold;")
+        self._add_type_row("显示模式:", mode_label)
+        
+        duration_spin = QSpinBox()
+        duration_spin.setRange(500, 30000)
+        duration_spin.setSingleStep(500)
+        duration_spin.setValue(model.animation_duration)
+        duration_spin.valueChanged.connect(lambda v: self._on_property_changed("animation_duration", v))
+        self._add_type_row("动画时长(ms):", duration_spin)
+        
+        is_running = getattr(model, 'is_running', False)
+        status_label = QLabel("运行中" if is_running else "已停止")
+        status_label.setStyleSheet(
+            "color: #4CAF50; font-weight: bold;" if is_running else "color: #999999;"
+        )
+        self._add_type_row("状态:", status_label)
+        
+        items_count = len(model.items) if hasattr(model, 'items') else 0
+        count_label = QLabel(str(items_count))
+        self._add_type_row("候选项数:", count_label)
     
     def _add_image_properties(self, model: ImageModel):
         """添加图片组件属性。"""
@@ -1083,6 +1330,13 @@ class PropertyPanel(QWidget):
         checked_check.setChecked(model.checked)
         checked_check.stateChanged.connect(lambda v: self._on_property_changed("checked", bool(v)))
         self._add_type_row("选中:", checked_check)
+        
+        align_combo = QComboBox()
+        align_combo.addItems(["左对齐", "居中", "右对齐"])
+        align_combo.setCurrentIndex({"left": 0, "center": 1, "right": 2}.get(model.alignment, 0))
+        align_combo.currentIndexChanged.connect(lambda i: self._on_property_changed("alignment", ["left", "center", "right"][i]))
+        align_combo.setFixedWidth(100)
+        self._add_type_row("对齐:", align_combo)
     
     def _add_combobox_properties(self, model: ComboBoxModel):
         items_edit = QLineEdit()

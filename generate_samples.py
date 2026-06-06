@@ -607,6 +607,204 @@ def create_galgame_sample() -> Dict[str, Any]:
     }
 
 
+def create_lottery_sample_images() -> Dict[str, Any]:
+    """创建图片轮播抽奖示例（年会抽奖风格）。
+    
+    使用 TechComponentManager 工厂组件生成，确保：
+    1. 组件ID由工厂自动生成，保证唯一性
+    2. 联动关系由工厂自动配置，保证引用正确
+    3. action.params.target_component_id 指向正确的轮播组件ID
+    """
+    from models.registry_init import register_all_components
+    from models.tech_components import TechComponentManager
+    from models.components import ContainerModel, create_component
+    
+    register_all_components()
+    
+    container = create_component('container', name='主容器', x=10, y=10, width=480, height=400, text='')
+    container._style = StyleConfig(
+        background_color="#f5f5f5", text_color="#333333",
+        border_color="#cccccc", border_width=1, border_radius=8
+    )
+    
+    components, linkages = TechComponentManager.create_tech_component(
+        'lottery', parent_id=container.id
+    )
+    
+    title_comp = None
+    carousel_comp = None
+    button_comp = None
+    result_comp = None
+    for c in components:
+        if c.name == "抽奖标题":
+            title_comp = c
+            title_comp.text = "年会抽奖"
+            title_comp.x = 150
+            title_comp.y = 40
+            title_comp.width = 200
+            title_comp.height = 35
+            title_comp.alignment = "center"
+            title_comp._style = StyleConfig(
+                background_color="transparent", text_color="#333333",
+                font_size=18, font_bold=True
+            )
+        elif c.name == "奖品轮播":
+            carousel_comp = c
+            carousel_comp.x = 90
+            carousel_comp.y = 90
+            carousel_comp.width = 300
+            carousel_comp.height = 180
+            carousel_comp.images = ["张三.png", "李四.png", "王五.png", "赵六.png", "钱七.png"]
+            carousel_comp.image_labels = ["张三", "李四", "王五", "赵六", "钱七"]
+            carousel_comp._style = StyleConfig(
+                background_color="#e0e0e0", border_color="#999999", border_radius=5
+            )
+        elif c.name == "开始抽奖":
+            button_comp = c
+            button_comp.x = 175
+            button_comp.y = 290
+            button_comp.width = 130
+            button_comp.height = 36
+            button_comp._style = StyleConfig(
+                background_color="#4CAF50", text_color="#ffffff",
+                border_radius=5, font_size=14, font_bold=True
+            )
+            if button_comp._action and button_comp._action.params:
+                button_comp._action.params["action_params"] = {"duration_ms": 2000}
+        elif c.name == "抽奖结果":
+            result_comp = c
+            result_comp.text = "点击按钮开始抽奖"
+            result_comp.x = 50
+            result_comp.y = 340
+            result_comp.width = 400
+            result_comp.height = 40
+            result_comp.alignment = "center"
+            result_comp._style = StyleConfig(
+                background_color="transparent", text_color="#4CAF50",
+                font_size=18, font_bold=True
+            )
+    
+    all_components = [container] + components
+    component_ids = [c.id for c in all_components]
+    
+    window_id = f"win_{container.id[:8]}"
+    
+    return {
+        "name": "年会抽奖",
+        "windows": [
+            {
+                "id": window_id,
+                "name": "抽奖主界面",
+                "window_type": "main",
+                "width": 500,
+                "height": 420,
+                "title": "年会抽奖",
+                "components": component_ids
+            }
+        ],
+        "components": [c.to_dict() for c in all_components],
+        "linkages": linkages,
+        "main_window_id": window_id,
+        "current_window_id": window_id
+    }
+
+
+def create_lottery_sample_text() -> Dict[str, Any]:
+    """创建文字抽奖示例。
+    
+    使用 TechComponentManager 工厂组件生成，文字抽奖使用 label 组件
+    替代 image_carousel 进行文字轮播动画。
+    """
+    from models.registry_init import register_all_components
+    from models.tech_components import TechComponentManager
+    from models.components import ContainerModel, LabelModel, ButtonModel, create_component
+    from models.base import ActionConfig
+    
+    register_all_components()
+    
+    container = create_component('container', name='主容器', x=10, y=10, width=480, height=400, text='')
+    container._style = StyleConfig(
+        background_color="#f5f5f5", text_color="#333333",
+        border_color="#cccccc", border_width=1, border_radius=8
+    )
+    
+    title_label = create_component('label', name='抽奖标题', x=150, y=40, width=200, height=35, text='文字抽奖')
+    title_label.parent_id = container.id
+    title_label.alignment = "center"
+    title_label._style = StyleConfig(
+        background_color="transparent", text_color="#333333",
+        font_size=18, font_bold=True
+    )
+    
+    text_label = create_component('label', name='文字轮播', x=90, y=90, width=300, height=180, text='张三')
+    text_label.parent_id = container.id
+    text_label.alignment = "center"
+    text_label._style = StyleConfig(
+        background_color="#e0e0e0", text_color="#333333",
+        border_color="#999999", border_radius=5,
+        font_size=24, font_bold=True
+    )
+    
+    draw_button = create_component('button', name='开始抽奖', x=175, y=290, width=130, height=36, text='开始抽奖')
+    draw_button.parent_id = container.id
+    draw_button._action = ActionConfig(
+        action_type="lottery_animation",
+        params={
+            "target_component_id": text_label.id,
+            "action_params": {"duration_ms": 2000, "candidates": ["张三", "李四", "王五", "赵六", "钱七"]}
+        }
+    )
+    draw_button._style = StyleConfig(
+        background_color="#4CAF50", text_color="#ffffff",
+        border_radius=5, font_size=14, font_bold=True
+    )
+    
+    result_label = create_component('label', name='抽奖结果', x=50, y=340, width=400, height=40, text='点击按钮开始抽奖')
+    result_label.parent_id = container.id
+    result_label.alignment = "center"
+    result_label._style = StyleConfig(
+        background_color="transparent", text_color="#4CAF50",
+        font_size=18, font_bold=True
+    )
+    
+    linkages = [
+        {
+            "source_component": text_label.id,
+            "source_event": "lottery_finished",
+            "target_component": result_label.id,
+            "target_action": "set_text",
+            "params": {"text_template": "恭喜中奖: {winner}"}
+        }
+    ]
+    
+    all_components = [container, title_label, text_label, draw_button, result_label]
+    component_ids = [c.id for c in all_components]
+    
+    window_id = f"win_{container.id[:8]}"
+    
+    return {
+        "name": "文字抽奖",
+        "windows": [
+            {
+                "id": window_id,
+                "name": "抽奖主界面",
+                "window_type": "main",
+                "width": 500,
+                "height": 420,
+                "title": "文字抽奖",
+                "components": component_ids
+            }
+        ],
+        "components": [c.to_dict() for c in all_components],
+        "linkages": linkages,
+        "main_window_id": window_id,
+        "current_window_id": window_id
+    }
+
+
+from models.base import StyleConfig
+
+
 def save_sample(data: Dict[str, Any], filename: str):
     """保存示例到文件。"""
     samples_dir = os.path.join(os.path.dirname(__file__), "samples")
@@ -623,15 +821,21 @@ def main():
     """主函数。"""
     print("生成示例项目...")
     
-    # 生成开机检测示例
     boot_detection = create_boot_detection_sample()
     save_sample(boot_detection, "系统检测示例.itexe")
     
-    # 生成 Galgame 示例
     galgame = create_galgame_sample()
     save_sample(galgame, "galgame示例.itexe")
     
+    lottery_images = create_lottery_sample_images()
+    save_sample(lottery_images, "年会抽奖示例.itexe")
+    
+    lottery_text = create_lottery_sample_text()
+    save_sample(lottery_text, "文字抽奖示例.itexe")
+    
     print("\n示例生成完成！")
+    print("注意：抽奖示例已改用 TechComponentManager 工厂组件生成，")
+    print("确保组件ID和联动关系正确。")
 
 
 if __name__ == "__main__":

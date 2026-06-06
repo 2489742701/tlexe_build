@@ -42,6 +42,12 @@ def debug_log(category: str, message: str, force: bool = False):
         return
     
     print(message)
+    
+    try:
+        from dev_mode.debug_logger import DebugLogger
+        DebugLogger.debug(f"[{category}] {message}", "editor")
+    except Exception:
+        pass
 
 
 class ProjectController:
@@ -217,7 +223,7 @@ class ProjectController:
         """另存为项目。"""
         if not file_path:
             file_path, _ = QFileDialog.getSaveFileName(
-                self.window, "保存项目", "", "项目文件 (*.itexe);;所有文件 (*.*)"
+                self.window, "保存项目", "", "项目文件 (*.py);;旧格式 (*.itexe);;所有文件 (*.*)"
             )
         
         if file_path:
@@ -353,6 +359,10 @@ class ProjectController:
     
     def _add_single_component(self, comp_type: str, parent_id: str):
         """添加单个组件。"""
+        if comp_type in ('button', 'confirm_button'):
+            if not self._check_button_conflict(comp_type):
+                return
+        
         comp = create_component(comp_type)
         if parent_id:
             comp.parent_id = parent_id
@@ -755,41 +765,206 @@ class ProjectController:
                             current_window.width, current_window.height
                         )
     
+    def _check_button_conflict(self, comp_type: str) -> bool:
+        """检测确认按钮与普通按钮同窗冲突。
+        
+        Returns:
+            True 允许添加, False 取消添加
+        """
+        current_window = self.project_model.current_window
+        if not current_window:
+            return True
+        
+        has_button = False
+        has_confirm = False
+        for cid in current_window.components:
+            c = self.project_model.get_component(cid)
+            if c:
+                if c.type == 'button':
+                    has_button = True
+                elif c.type == 'confirm_button':
+                    has_confirm = True
+        
+        will_conflict = (
+            (comp_type == 'confirm_button' and has_button) or
+            (comp_type == 'button' and has_confirm)
+        )
+        
+        if will_conflict:
+            from PySide6.QtWidgets import QMessageBox
+            reply = QMessageBox.warning(
+                self.window, "按钮类型冲突",
+                "当前窗口已有普通按钮。\n\n"
+                "普通按钮和确认按钮在同一窗口中可能产生交互冲突：\n"
+                "普通按钮点击立即执行动作，确认按钮需要全部按下才执行。\n\n"
+                "确定要继续添加吗？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            ) if comp_type == 'confirm_button' else QMessageBox.warning(
+                self.window, "按钮类型冲突",
+                "当前窗口已有确认按钮。\n\n"
+                "普通按钮和确认按钮在同一窗口中可能产生交互冲突：\n"
+                "普通按钮点击立即执行动作，确认按钮需要全部按下才执行。\n\n"
+                "确定要继续添加吗？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            return reply == QMessageBox.StandardButton.Yes
+        
+        return True
+    
     def _on_action_config(self, comp_id: str):
-        """配置动作。"""
-        from PySide6.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox
-        from views.blockly_editor import BlocklyEditor
+        """配置动作 — 简化版，只列出当前项目中实际可用的行为。"""
+        from PySide6.QtWidgets import (
+            QDialog, QVBoxLayout, QHBoxLayout, QDialogButtonBox,
+            QComboBox, QLabel, QSpinBox, QGroupBox, QFormLayout, QRadioButton, QButtonGroup
+        )
         
         comp = self.project_model.get_component(comp_id)
         if not comp:
             return
         
+        current_window_id = self.project_model.current_window_id
+        current_window = self.project_model.get_window(current_window_id)
+        
         dialog = QDialog(self.window)
         dialog.setWindowTitle(f"配置行为 - {comp.name}")
-        dialog.setMinimumSize(600, 400)
+        dialog.setMinimumSize(400, 280)
         
         layout = QVBoxLayout(dialog)
+        form = QFormLayout()
         
-        editor = BlocklyEditor()
-        if hasattr(comp, 'action') and comp.action:
-            editor.set_code(comp.action.python_code or "")
-            editor.set_xml(comp.action.blockly_xml or "")
-        layout.addWidget(editor)
+        # --- 作用范围：本窗体 / 全部窗体 ---
+        scope_group = QButtonGroup(dialog)
+        scope_this = QRadioButton("本窗体")
+        scope_all = QRadioButton("全部窗体")
+        scope_this.setChecked(True)
+        scope_group.addButton(scope_this)
+        scope_group.addButton(scope_all)
+        scope_layout = QHBoxLayout()
+        scope_layout.addWidget(scope_this)
+        scope_layout.addWidget(scope_all)
+        form.addRow("作用范围:", scope_layout)
+        
+        # --- 动作类型：根据项目中实际存在的组件动态生成 ---
+        all_components = self.project_model.get_all_components()
+        comp_types_in_project = set(c.type for c in all_components)
+        
+        action_items = [("无动作", "none")]
+        action_items.append(("关闭窗口", "close_window"))
+        action_items.append(("关闭程序", "close_program"))
+        
+        has_alternating = comp_types_in_project & {'text_alternating', 'image_alternating'}
+        if has_alternating:
+            action_items.append(("开始交替变换", "start_alternating"))
+            action_items.append(("停止交替变换", "stop_alternating"))
+        
+        if 'lottery' in comp_types_in_project or 'image_carousel' in comp_types_in_project:
+            action_items.append(("抽奖动画", "lottery_animation"))
+        
+        if 'image_carousel' in comp_types_in_project or 'image' in comp_types_in_project:
+            action_items.append(("随机图片", "random_image"))
+            action_items.append(("开始轮播", "start_carousel"))
+            action_items.append(("停止轮播", "stop_carousel"))
+        
+        action_items.append(("设置文本", "set_text"))
+        action_items.append(("显示组件", "show_component"))
+        action_items.append(("隐藏组件", "hide_component"))
+        action_items.append(("打开窗口", "open_window"))
+        
+        action_combo = QComboBox()
+        for display_name, action_type in action_items:
+            action_combo.addItem(display_name, action_type)
+        
+        current_action = getattr(comp, 'action', None)
+        if current_action:
+            for i in range(action_combo.count()):
+                if action_combo.itemData(i) == current_action.action_type:
+                    action_combo.setCurrentIndex(i)
+                    break
+        
+        form.addRow("动作类型:", action_combo)
+        
+        # --- 目标组件 ---
+        target_combo = QComboBox()
+        target_combo.addItem("-- 选择目标组件 --", "")
+        
+        def refresh_targets():
+            target_combo.clear()
+            target_combo.addItem("-- 选择目标组件 --", "")
+            if scope_this.isChecked() and current_window:
+                comp_ids = current_window.components
+                components = [self.project_model.get_component(cid) for cid in comp_ids]
+            else:
+                components = all_components
+            for c in components:
+                if c and c.id != comp_id:
+                    target_combo.addItem(f"{c.name} ({c.type})", c.id)
+            
+            if current_action and current_action.params:
+                target_id = current_action.params.get("target_component_id", "")
+                if target_id:
+                    for i in range(target_combo.count()):
+                        if target_combo.itemData(i) == target_id:
+                            target_combo.setCurrentIndex(i)
+                            break
+        
+        refresh_targets()
+        scope_this.toggled.connect(lambda: refresh_targets())
+        form.addRow("目标组件:", target_combo)
+        
+        # --- 动画时长 ---
+        duration_spin = QSpinBox()
+        duration_spin.setRange(500, 30000)
+        duration_spin.setSingleStep(500)
+        duration_spin.setValue(3000)
+        duration_spin.setSuffix(" ms")
+        if current_action and current_action.params:
+            action_params = current_action.params.get("action_params", {})
+            duration_spin.setValue(action_params.get("duration_ms", 3000))
+        form.addRow("动画时长:", duration_spin)
+        
+        layout.addLayout(form)
+        
+        needs_target = {"start_alternating", "stop_alternating", "lottery_animation",
+                        "random_image", "start_carousel", "stop_carousel",
+                        "set_text", "show_component", "hide_component"}
+        needs_duration = {"start_alternating", "lottery_animation"}
+        
+        def on_action_changed():
+            action_type = action_combo.currentData()
+            target_combo.setEnabled(action_type in needs_target)
+            duration_spin.setEnabled(action_type in needs_duration)
+        
+        action_combo.currentIndexChanged.connect(on_action_changed)
+        on_action_changed()
         
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        button_box.accepted.connect(dialog.accept)   # 【信号入口】确定按钮 -> 接受对话框
-        button_box.rejected.connect(dialog.reject)   # 【信号入口】取消按钮 -> 拒绝对话框
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box)
         
         if dialog.exec() == QDialog.DialogCode.Accepted:
             from models.base import ActionConfig
+            
+            action_type = action_combo.currentData()
+            target_id = target_combo.currentData()
+            duration = duration_spin.value()
+            
+            params = {}
+            if target_id:
+                params["target_component_id"] = target_id
+            if action_type in needs_duration:
+                params["action_params"] = {"duration_ms": duration}
+            
             comp.action = ActionConfig(
-                action_type="custom",
-                python_code=editor.get_code(),
-                blockly_xml=editor.get_xml()
+                action_type=action_type,
+                params=params
             )
+            
+            self.project_model.mark_dirty()
             self.window.show_status_message(f"已更新 {comp.name} 的行为配置")
     
     def _on_undo(self):
@@ -1028,9 +1203,6 @@ class ProjectController:
                         break
                 
                 if container_comp and container_comp.id == comp_id:
-                    current_window.width = new_width
-                    current_window.height = new_height
-                    
                     self.window.designer_view.set_desktop_size(new_width, new_height)
     
     def _on_component_removed(self, comp_id: str):
@@ -1050,7 +1222,15 @@ class ProjectController:
         
         current_window = self.project_model.get_window(window_id)
         if current_window:
-            self.window.designer_view.set_desktop_size(current_window.width, current_window.height)
+            desktop_w = current_window.width
+            desktop_h = current_window.height
+            for cid in current_window.components:
+                c = self.project_model.get_component(cid)
+                if c and c.type == "container":
+                    desktop_w = c.width
+                    desktop_h = c.height
+                    break
+            self.window.designer_view.set_desktop_size(desktop_w, desktop_h)
         
         components = self.project_model.get_components_for_window(window_id)
         for comp in components:

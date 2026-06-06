@@ -121,7 +121,9 @@ class ButtonModel(ComponentModel):
 
 class LabelModel(ComponentModel):
     """标签组件模型。"""
-    
+
+    lottery_finished = Signal(int, str)  # 抽奖动画结束信号：(中奖索引, 中奖文字)
+
     def __init__(self, name: str = "", x: int = 0, y: int = 0,
                  width: int = 120, height: int = 30, text: str = "文本",
                  parent_id: str = ""):
@@ -207,16 +209,19 @@ class LabelModel(ComponentModel):
         def update_animation():
             elapsed = elapsed_timer.elapsed()
             progress = min(elapsed / duration_ms, 1.0)
-            
+
             easing = QEasingCurve(QEasingCurve.Type.OutQuart)
             eased_progress = easing.valueForProgress(progress)
-            
+
             if progress < 1.0:
                 speed = int(50 + eased_progress * 200)
                 current_idx = int(elapsed / speed) % len(candidates)
                 self.text = candidates[current_idx]
             else:
                 self.text = final_text
+                self._lottery_timer.stop()
+                self._lottery_timer = None
+                self.lottery_finished.emit(final_index, final_text)
                 if on_finished:
                     on_finished(final_text)
         
@@ -393,9 +398,10 @@ class CheckBoxModel(ComponentModel):
     
     def __init__(self, name: str = "", x: int = 0, y: int = 0,
                  width: int = 120, height: int = 24, text: str = "复选框",
-                 parent_id: str = ""):
+                 parent_id: str = "", alignment: str = "left"):
         super().__init__("checkbox", name, x, y, width, height, text, parent_id)
         self._checked: bool = False
+        self._alignment: str = alignment
     
     @property
     def checked(self) -> bool:
@@ -407,15 +413,27 @@ class CheckBoxModel(ComponentModel):
             self._checked = value
             self.data_changed.emit()
     
+    @property
+    def alignment(self) -> str:
+        return self._alignment
+    
+    @alignment.setter
+    def alignment(self, value: str):
+        if self._alignment != value:
+            self._alignment = value
+            self.data_changed.emit()
+    
     def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
         data['checked'] = self._checked
+        data['alignment'] = self._alignment
         return data
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'CheckBoxModel':
         instance = super().from_dict(data)
         instance._checked = data.get('checked', False)
+        instance._alignment = data.get('alignment', 'left')
         return instance
 
 
@@ -1090,6 +1108,7 @@ class ImageCarouselModel(ComponentModel):
         self._interval: int = 2000
         self._auto_play: bool = False
         self._loop: bool = True
+        self._is_animating: bool = False
     
     @property
     def images(self) -> list:
@@ -1262,15 +1281,19 @@ class ImageCarouselModel(ComponentModel):
         """
         import random
         from PySide6.QtCore import QTimer, QElapsedTimer
-        
+
         if not self._images or len(self._images) < 2:
             return
-        
+
+        if self._is_animating:
+            return
+
         final_index = random.randint(0, len(self._images) - 1)
-        
+
         elapsed_timer = QElapsedTimer()
         elapsed_timer.start()
-        
+
+        self._is_animating = True
         self._lottery_timer = QTimer()
         self._lottery_timer.timeout.connect(
             lambda: self._update_lottery_animation(
@@ -1297,6 +1320,7 @@ class ImageCarouselModel(ComponentModel):
             self.next_image()
         else:
             self._lottery_timer.stop()
+            self._is_animating = False
             self.current_index = final_index
             
             winner_image = self._images[final_index] if final_index < len(self._images) else ""
@@ -1309,6 +1333,422 @@ class ImageCarouselModel(ComponentModel):
         """停止抽奖动画。"""
         if hasattr(self, '_lottery_timer') and self._lottery_timer:
             self._lottery_timer.stop()
+
+
+class LotteryModel(ComponentModel):
+    """抽奖组件模型。
+    
+    独立的抽奖组件，支持图片/文字双模式抽奖动画。
+    不再复用 image_carousel，抽奖逻辑完全自包含。
+    
+    Attributes:
+        items: 候选项列表（图片路径或文字内容）
+        item_labels: 候选项标签列表
+        display_mode: 显示模式 "image" 或 "text"
+        current_index: 当前显示项索引
+        animation_duration: 动画时长（毫秒）
+    """
+    
+    def __init__(self, **kwargs):
+        kwargs.setdefault('comp_type', 'lottery')
+        kwargs.setdefault('name', '抽奖')
+        kwargs.setdefault('width', 300)
+        kwargs.setdefault('height', 180)
+        super().__init__(**kwargs)
+        self._items = []
+        self._item_labels = []
+        self._display_mode = "image"
+        self._current_index = 0
+        self._animation_duration = 3000
+        self._lottery_timer = None
+        self._is_animating = False
+    
+    lottery_finished = Signal(int, str)
+    current_index_changed = Signal(int)
+    
+    @property
+    def items(self) -> list:
+        return self._items
+    
+    @items.setter
+    def items(self, value: list):
+        self._items = list(value) if value else []
+        self._sync_item_labels()
+        self.data_changed.emit()
+    
+    @property
+    def item_labels(self) -> list:
+        return self._item_labels
+    
+    @item_labels.setter
+    def item_labels(self, value: list):
+        self._item_labels = list(value) if value else []
+        self._sync_item_labels()
+        self.data_changed.emit()
+    
+    @property
+    def display_mode(self) -> str:
+        return self._display_mode
+    
+    @display_mode.setter
+    def display_mode(self, value: str):
+        if self._is_animating:
+            import logging
+            logging.getLogger(__name__).warning("动画执行中，禁止切换显示模式")
+            return
+        if value not in ("image", "text"):
+            import logging
+            logging.getLogger(__name__).warning(f"非法显示模式: {value}，仅允许 'image' 或 'text'")
+            return
+        self._display_mode = value
+        self.data_changed.emit()
+    
+    @property
+    def current_index(self) -> int:
+        return self._current_index
+    
+    @current_index.setter
+    def current_index(self, value: int):
+        if self._items and 0 <= value < len(self._items):
+            self._current_index = value
+            self.current_index_changed.emit(value)
+            self.data_changed.emit()
+    
+    @property
+    def animation_duration(self) -> int:
+        return self._animation_duration
+    
+    @animation_duration.setter
+    def animation_duration(self, value: int):
+        self._animation_duration = max(500, min(30000, int(value)))
+        self.data_changed.emit()
+    
+    @property
+    def is_animating(self) -> bool:
+        return self._is_animating
+    
+    def _sync_item_labels(self):
+        if len(self._item_labels) < len(self._items):
+            for i in range(len(self._item_labels), len(self._items)):
+                item = self._items[i]
+                label = item.replace('.png', '').replace('.jpg', '') if isinstance(item, str) else str(item)
+                self._item_labels.append(label)
+        elif len(self._item_labels) > len(self._items):
+            self._item_labels = self._item_labels[:len(self._items)]
+    
+    def to_dict(self) -> dict:
+        data = super().to_dict()
+        data['items'] = self._items
+        data['item_labels'] = self._item_labels
+        data['display_mode'] = self._display_mode
+        data['current_index'] = self._current_index
+        data['animation_duration'] = self._animation_duration
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        instance = super().from_dict(data)
+        instance._items = data.get('items', [])
+        instance._item_labels = data.get('item_labels', [])
+        display_mode = data.get('display_mode', 'image')
+        if display_mode not in ('image', 'text'):
+            import logging
+            logging.getLogger(__name__).warning(f"非法 display_mode '{display_mode}'，回退为 'image'")
+            display_mode = 'image'
+        instance._display_mode = display_mode
+        instance._current_index = data.get('current_index', 0)
+        instance._animation_duration = data.get('animation_duration', 3000)
+        instance._sync_item_labels()
+        return instance
+    
+    def get_editor_tabs(self):
+        return [
+            {"name": "基础", "props": ["name", "display_mode", "animation_duration"]},
+            {"name": "候选项", "props": ["items", "item_labels"]},
+            {"name": "样式", "props": ["style"]}
+        ]
+    
+    def lottery_animation(self, duration_ms: int = None):
+        """执行抽奖动画。"""
+        import random
+        from PySide6.QtCore import QTimer, QElapsedTimer
+        
+        if not self._items or len(self._items) < 2:
+            import logging
+            logging.getLogger(__name__).warning("候选项不足2个，无法执行抽奖动画")
+            return
+        
+        if self._is_animating:
+            return
+        
+        if duration_ms is None:
+            duration_ms = self._animation_duration
+        
+        final_index = random.randint(0, len(self._items) - 1)
+        
+        elapsed_timer = QElapsedTimer()
+        elapsed_timer.start()
+        
+        self._is_animating = True
+        self._lottery_timer = QTimer()
+        self._lottery_timer.timeout.connect(
+            lambda: self._update_lottery_animation(
+                elapsed_timer, duration_ms, final_index
+            )
+        )
+        self._lottery_timer.start(50)
+    
+    def _update_lottery_animation(self, elapsed_timer, duration_ms, final_index):
+        """更新抽奖动画状态。"""
+        from PySide6.QtCore import QEasingCurve
+        
+        elapsed = elapsed_timer.elapsed()
+        progress = min(elapsed / duration_ms, 1.0)
+        
+        easing = QEasingCurve(QEasingCurve.Type.OutQuart)
+        eased_progress = easing.valueForProgress(progress)
+        
+        if progress < 1.0:
+            speed = int(50 + eased_progress * 300)
+            if self._lottery_timer.interval() != speed:
+                self._lottery_timer.setInterval(speed)
+            
+            next_index = (self._current_index + 1) % len(self._items)
+            self._current_index = next_index
+            self.current_index_changed.emit(next_index)
+            self.data_changed.emit()
+        else:
+            self._lottery_timer.stop()
+            self._is_animating = False
+            self._current_index = final_index
+            self.current_index_changed.emit(final_index)
+            
+            winner = self._item_labels[final_index] if final_index < len(self._item_labels) else str(self._items[final_index])
+            self.lottery_finished.emit(final_index, winner)
+    
+    def stop_lottery(self):
+        """停止抽奖动画。"""
+        if self._lottery_timer:
+            self._lottery_timer.stop()
+            self._lottery_timer = None
+        self._is_animating = False
+
+
+class AlternatingModel(ComponentModel):
+    """交替变换基类。
+
+    将原有抽奖中的"交替变换"核心逻辑抽象为独立基类。
+    子类只需指定 comp_type、display_mode、默认名称和尺寸，其余逻辑完全复用。
+
+    开放两个信号：
+    - started:  开始交替变换时发射
+    - stopped:  停止交替变换时发射，携带 (final_index, final_value)
+
+    外部通过 start_alternating() / stop_alternating() 控制，
+    典型用法是绑定两个按钮："开始"和"停止"。
+
+    Attributes:
+        _display_mode: 显示模式，子类在 __init__ 中固定为 "text" 或 "image"
+    """
+
+    started = Signal()
+    stopped = Signal(int, str)
+    current_index_changed = Signal(int)
+
+    def __init__(self, comp_type: str = "alternating", **kwargs):
+        kwargs.setdefault('name', '交替变换')
+        kwargs.setdefault('width', 300)
+        kwargs.setdefault('height', 180)
+        super().__init__(comp_type, **kwargs)
+        self._items: list = []
+        self._item_labels: list = []
+        self._current_index: int = 0
+        self._animation_duration: int = 3000
+        self._alternating_timer = None
+        self._is_running: bool = False
+        self._display_mode: str = "text"
+
+    @property
+    def display_mode(self) -> str:
+        return self._display_mode
+
+    @property
+    def items(self) -> list:
+        return self._items
+
+    @items.setter
+    def items(self, value: list):
+        self._items = list(value) if value else []
+        self._sync_item_labels()
+        self.data_changed.emit()
+
+    @property
+    def item_labels(self) -> list:
+        return self._item_labels
+
+    @item_labels.setter
+    def item_labels(self, value: list):
+        self._item_labels = list(value) if value else []
+        self._sync_item_labels()
+        self.data_changed.emit()
+
+    @property
+    def current_index(self) -> int:
+        return self._current_index
+
+    @current_index.setter
+    def current_index(self, value: int):
+        if self._items and 0 <= value < len(self._items):
+            self._current_index = value
+            self.current_index_changed.emit(value)
+            self.data_changed.emit()
+
+    @property
+    def animation_duration(self) -> int:
+        return self._animation_duration
+
+    @animation_duration.setter
+    def animation_duration(self, value: int):
+        self._animation_duration = max(500, min(30000, int(value)))
+        self.data_changed.emit()
+
+    @property
+    def is_running(self) -> bool:
+        return self._is_running
+
+    def _sync_item_labels(self):
+        if len(self._item_labels) < len(self._items):
+            for i in range(len(self._item_labels), len(self._items)):
+                item = self._items[i]
+                label = item.replace('.png', '').replace('.jpg', '') if isinstance(item, str) else str(item)
+                self._item_labels.append(label)
+        elif len(self._item_labels) > len(self._items):
+            self._item_labels = self._item_labels[:len(self._items)]
+
+    def start_alternating(self, duration_ms: int = None):
+        """开始交替变换动画。
+
+        使用 OutQuart 缓动曲线实现先快后慢的交替切换效果。
+        预先随机确定最终停留位置，动画结束时发射 stopped 信号。
+        """
+        import random
+        from PySide6.QtCore import QTimer, QElapsedTimer
+
+        if not self._items or len(self._items) < 2 or self._is_running:
+            return
+
+        if duration_ms is None:
+            duration_ms = self._animation_duration
+
+        self._final_index = random.randint(0, len(self._items) - 1)
+
+        elapsed_timer = QElapsedTimer()
+        elapsed_timer.start()
+
+        self._is_running = True
+        self.started.emit()
+
+        self._alternating_timer = QTimer()
+        self._alternating_timer.timeout.connect(
+            lambda: self._update_alternating(elapsed_timer, duration_ms, self._final_index)
+        )
+        self._alternating_timer.start(50)
+
+    def _update_alternating(self, elapsed_timer, duration_ms, final_index):
+        """更新交替变换动画状态。"""
+        from PySide6.QtCore import QEasingCurve
+
+        elapsed = elapsed_timer.elapsed()
+        progress = min(elapsed / duration_ms, 1.0)
+
+        easing = QEasingCurve(QEasingCurve.Type.OutQuart)
+        eased_progress = easing.valueForProgress(progress)
+
+        if progress < 1.0:
+            speed = int(50 + eased_progress * 300)
+            if self._alternating_timer.interval() != speed:
+                self._alternating_timer.setInterval(speed)
+            self._current_index = (self._current_index + 1) % len(self._items)
+            self.current_index_changed.emit(self._current_index)
+            self.data_changed.emit()
+        else:
+            self._finish_alternating(final_index)
+
+    def _finish_alternating(self, final_index):
+        """交替变换动画结束：停止定时器，发射 stopped 信号。"""
+        self._alternating_timer.stop()
+        self._is_running = False
+        self._current_index = final_index
+        self.current_index_changed.emit(final_index)
+        final_value = self._item_labels[final_index] if final_index < len(self._item_labels) else str(self._items[final_index])
+        self.stopped.emit(final_index, final_value)
+
+    def stop_alternating(self):
+        """手动停止交替变换，立即发射 stopped 信号携带当前位置。"""
+        if self._alternating_timer:
+            self._alternating_timer.stop()
+            self._alternating_timer = None
+        if self._is_running:
+            self._is_running = False
+            idx = self._current_index
+            val = self._item_labels[idx] if idx < len(self._item_labels) else (str(self._items[idx]) if idx < len(self._items) else "")
+            self.stopped.emit(idx, val)
+
+    def _get_item_label(self, index: int) -> str:
+        """获取指定索引的显示标签。"""
+        if index < len(self._item_labels):
+            return self._item_labels[index]
+        if index < len(self._items):
+            return str(self._items[index])
+        return ""
+
+    def to_dict(self) -> dict:
+        data = super().to_dict()
+        data['items'] = self._items
+        data['item_labels'] = self._item_labels
+        data['display_mode'] = self._display_mode
+        data['current_index'] = self._current_index
+        data['animation_duration'] = self._animation_duration
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        instance = super().from_dict(data)
+        instance._items = data.get('items', [])
+        instance._item_labels = data.get('item_labels', [])
+        instance._display_mode = data.get('display_mode', 'text')
+        instance._current_index = data.get('current_index', 0)
+        instance._animation_duration = data.get('animation_duration', 3000)
+        instance._sync_item_labels()
+        return instance
+
+    def get_editor_tabs(self):
+        mode_name = "文字候选项" if self._display_mode == 'text' else "图片候选项"
+        return [
+            {"name": "基础", "props": ["name", "animation_duration"]},
+            {"name": mode_name, "props": ["items", "item_labels"]},
+            {"name": "样式", "props": ["style"]}
+        ]
+
+
+class TextAlternatingModel(AlternatingModel):
+    """文字交替变换模型。候选项为文字字符串列表。"""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault('name', '文字交替变换')
+        kwargs.setdefault('height', 100)
+        super().__init__(comp_type="text_alternating", **kwargs)
+        self._display_mode = "text"
+
+
+class ImageAlternatingModel(AlternatingModel):
+    """图片交替变换模型。候选项为图片路径列表。"""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault('name', '图片交替变换')
+        kwargs.setdefault('height', 200)
+        super().__init__(comp_type="image_alternating", **kwargs)
+        self._display_mode = "image"
 
 
 class GroupNodeModel(ComponentModel):
@@ -1454,25 +1894,92 @@ class GroupNodeModel(ComponentModel):
         return instance
 
 
+class ConfirmButtonModel(ComponentModel):
+    """确认按钮模型。
+    
+    同一 confirm_group 内的所有确认按钮必须全部按下，
+    才触发 all_confirmed 信号（跳转下一步）。
+    
+    Attributes:
+        confirm_group: 确认组名称，同组按钮互相关联
+        is_confirmed: 当前按钮是否已按下
+    """
+    
+    all_confirmed = Signal(str)
+    confirmed_changed = Signal(str, bool)
+    
+    def __init__(self, **kwargs):
+        kwargs.setdefault('comp_type', 'confirm_button')
+        kwargs.setdefault('name', '确认按钮')
+        kwargs.setdefault('width', 120)
+        kwargs.setdefault('height', 40)
+        super().__init__(**kwargs)
+        self._confirm_group = "default"
+        self._is_confirmed = False
+    
+    @property
+    def confirm_group(self) -> str:
+        return self._confirm_group
+    
+    @confirm_group.setter
+    def confirm_group(self, value: str):
+        self._confirm_group = value
+        self.data_changed.emit()
+    
+    @property
+    def is_confirmed(self) -> bool:
+        return self._is_confirmed
+    
+    @is_confirmed.setter
+    def is_confirmed(self, value: bool):
+        if self._is_confirmed != value:
+            self._is_confirmed = value
+            self.confirmed_changed.emit(self._id, value)
+            self.data_changed.emit()
+    
+    def toggle(self):
+        self.is_confirmed = not self._is_confirmed
+    
+    def to_dict(self) -> dict:
+        data = super().to_dict()
+        data['confirm_group'] = self._confirm_group
+        data['is_confirmed'] = self._is_confirmed
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        instance = super().from_dict(data)
+        instance._confirm_group = data.get('confirm_group', 'default')
+        instance._is_confirmed = data.get('is_confirmed', False)
+        return instance
+
+
 COMPONENT_TYPE_MAP: Dict[str, Type[ComponentModel]] = {
     'button': ButtonModel,
     'label': LabelModel,
     'input': InputModel,
+    'textarea': InputModel,
     'container': ContainerModel,
     'checkbox': CheckBoxModel,
     'combobox': ComboBoxModel,
+    'listwidget': ComboBoxModel,
+    'groupbox': ContainerModel,
     'image': ImageModel,
     'video': VideoModel,
     'progressbar': ProgressBarModel,
     'hidden_button': HiddenButtonModel,
     'image_button': ImageButtonModel,
     'image_carousel': ImageCarouselModel,
+    'lottery': LotteryModel,
+    'text_alternating': TextAlternatingModel,
+    'image_alternating': ImageAlternatingModel,
+    'confirm_button': ConfirmButtonModel,
     'group_node': GroupNodeModel,
 }
 
 
 def create_component(comp_type: str, **kwargs) -> ComponentModel:
-    """创建组件实例。
+    """创建组件实例（委托 ComponentRegistry）。
     
     Args:
         comp_type: 组件类型
@@ -1484,7 +1991,8 @@ def create_component(comp_type: str, **kwargs) -> ComponentModel:
     Raises:
         ValueError: 未知的组件类型
     """
-    comp_class = COMPONENT_TYPE_MAP.get(comp_type)
-    if comp_class:
-        return comp_class(**kwargs)
+    from models.component_registry import ComponentRegistry
+    model_class = ComponentRegistry.get_model_class(comp_type)
+    if model_class:
+        return model_class(**kwargs)
     raise ValueError(f"未知的组件类型: {comp_type}")

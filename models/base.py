@@ -19,6 +19,7 @@ class ActionType(Enum):
     Attributes:
         NONE: 无动作
         CLOSE_PROGRAM: 关闭程序
+        CLOSE_WINDOW: 关闭当前窗口
         OPEN_WINDOW: 打开窗口
         SWITCH_WINDOW: 切换窗口
         RANDOM_IMAGE: 随机选图
@@ -34,6 +35,7 @@ class ActionType(Enum):
     """
     NONE = "none"
     CLOSE_PROGRAM = "close_program"
+    CLOSE_WINDOW = "close_window"
     OPEN_WINDOW = "open_window"
     SWITCH_WINDOW = "switch_window"
     RANDOM_IMAGE = "random_image"
@@ -42,9 +44,13 @@ class ActionType(Enum):
     START_CAROUSEL = "start_carousel"
     STOP_CAROUSEL = "stop_carousel"
     LOTTERY_ANIMATION = "lottery_animation"
+    START_ALTERNATING = "start_alternating"
+    STOP_ALTERNATING = "stop_alternating"
+    CONFIRM_CHECK = "confirm_check"
     SET_TEXT = "set_text"
     SHOW_COMPONENT = "show_component"
     HIDE_COMPONENT = "hide_component"
+    SHOW_MESSAGE = "show_message"
     EXECUTE_PYTHON = "execute_python"
 
 
@@ -655,10 +661,11 @@ class ProjectModel(QObject):
             self._current_window_id = self._main_window_id
         
         for comp_data in data.get('components', []):
-            from .components import create_component, COMPONENT_TYPE_MAP
+            from .component_registry import ComponentRegistry
             comp_type = comp_data.get('comp_type') or comp_data.get('type', 'component')
-            if comp_type in COMPONENT_TYPE_MAP:
-                comp = COMPONENT_TYPE_MAP[comp_type].from_dict(comp_data)
+            model_class = ComponentRegistry.get_model_class(comp_type)
+            if model_class:
+                comp = model_class.from_dict(comp_data)
             else:
                 comp = ComponentModel.from_dict(comp_data)
             self._components[comp.id] = comp
@@ -671,8 +678,14 @@ class ProjectModel(QObject):
     def save_to_file(self, file_path: str) -> bool:
         try:
             self._file_path = file_path
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
+            from utils.py_project_format import dict_to_python_code, is_itexe_project_file
+            if is_itexe_project_file(file_path):
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
+            else:
+                code = dict_to_python_code(self.to_dict(), self.name)
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(code)
             self.mark_clean()
             self.project_saved.emit()
             return True
@@ -682,7 +695,9 @@ class ProjectModel(QObject):
     def load_from_file(self, file_path: str) -> bool:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                content = f.read()
+            from utils.py_project_format import python_code_to_dict
+            data = python_code_to_dict(content)
             self._file_path = file_path
             self.from_dict(data)
             self.mark_clean()

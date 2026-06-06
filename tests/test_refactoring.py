@@ -138,7 +138,7 @@ def test_utils_module(result: TestResult):
         manager = TempFileManager()
         path = manager.generate_temp_save_path()
         assert path is not None
-        assert path.endswith('.itexe')
+        assert path.endswith('.py')
     
     test_temp_file_manager()
     test_temp_file_manager_singleton()

@@ -193,7 +193,9 @@ class CanvasControllerV2:
         self._project_model = project_model
         self._undo_manager = undo_manager
         
-        # 选择状态
+        from services.layout import LayoutEngine
+        self._layout_engine = LayoutEngine(project_model, undo_manager)
+        
         self._selected_item_ids: List[str] = []
         
         # 使用类型安全的状态类
@@ -274,63 +276,140 @@ class CanvasControllerV2:
         
         Args:
             delta: 鼠标移动的增量
-            
-        ## 修复说明 (2026-04-02 三轮审查)
-        改为通过接口更新视图位置，不直接操作视图对象。
-        模型数据在 on_drag_end 中批量更新，避免频繁更新。
         """
         if not self._drag_state.is_dragging:
             return
         
-        # 更新所有选中组件的视图位置
         for item_id, start_pos in self._drag_state.items_start_positions.items():
             new_pos = start_pos + delta
             
-            # 应用网格对齐
             if self._canvas_view:
                 new_pos = self._canvas_view.snap_to_grid(new_pos)
             
-            # 通过接口更新视图，不直接操作视图对象
             self._canvas_view.set_item_position(item_id, new_pos)
         
-        # 更新对齐辅助线
         if self._show_alignment_guides:
             self._update_alignment_guides()
+        
+        self._check_drag_overlaps()
+    
+    def _check_drag_overlaps(self):
+        """拖拽中实时重叠检测与视觉提示。"""
+        from services.layout import OverlapDetector, OverlapVisualizer
+        
+        overlap_ids = set()
+        for item_id in self._drag_state.items_start_positions:
+            component = self._project_model.get_component(item_id)
+            if not component:
+                continue
+            
+            parent_id = getattr(component, 'parent_id', '')
+            if parent_id:
+                parent = self._project_model.get_component(parent_id)
+                if parent:
+                    children_ids = getattr(parent, 'children', [])
+                    siblings = []
+                    for cid in children_ids:
+                        if cid != item_id:
+                            c = self._project_model.get_component(cid)
+                            if c:
+                                siblings.append(c)
+                    overlaps = OverlapDetector.detect(component, siblings)
+                    for ov in overlaps:
+                        overlap_ids.add(ov.target_id)
+                    overlap_ids.add(item_id)
+        
+        try:
+            canvas_view = self._canvas_view
+            if hasattr(canvas_view, '_canvas_view'):
+                canvas_view = canvas_view._canvas_view
+            OverlapVisualizer.show_overlaps(overlap_ids, canvas_view)
+        except Exception:
+            pass
     
     def on_drag_end(self):
         """拖拽结束。
         
-        ## 修复说明 (2026-04-02 三轮审查)
-        使用批量命令统一更新模型，解决视图和模型不同步问题。
-        创建一个 BatchMoveCommand，包含所有移动的组件。
+        拖拽结束后执行：
+        1. 批量更新模型位置
+        2. 重叠检测与自动避让
+        3. 父容器拖拽时子组件联动移动
+        4. 容器布局重排
         """
         if not self._drag_state.is_dragging:
             return
         
-        # 收集所有移动操作
-        moves: Dict[str, tuple] = {}  # item_id -> (old_pos, new_pos)
-        
+        moves: Dict[str, tuple] = {}
         for item_id, start_pos in self._drag_state.items_start_positions.items():
             end_pos = self._canvas_view.get_item_position(item_id)
-            
             if end_pos != start_pos:
                 moves[item_id] = (start_pos, end_pos)
         
-        # 如果有移动，创建批量命令更新模型
         if moves:
             command = BatchMoveCommand(self._project_model, moves)
             command.execute()
             
-            # 添加到撤销管理器
-            # self._undo_manager.push(command)  # 需要 UndoManager 支持命令对象
-            
-            # 发射信号
-            self.components_moved.emit(list(moves.keys()), 
+            self.components_moved.emit(list(moves.keys()),
                 list(moves.values())[0][1] - list(moves.values())[0][0])
+            
+            self._handle_drag_aftermath(moves)
         
-        # 重置状态
         self._drag_state.reset()
         self._clear_alignment_guides()
+        
+        from services.layout import OverlapVisualizer
+        OverlapVisualizer.clear_overlaps()
+    
+    def _handle_drag_aftermath(self, moves: Dict[str, tuple]):
+        """拖拽后续处理：重叠避让 + 父容器联动 + 布局重排。"""
+        from services.layout import OverlapDetector, OverlapAvoider
+        from models.components import ContainerModel
+        
+        for item_id, (start_pos, end_pos) in moves.items():
+            component = self._project_model.get_component(item_id)
+            if not component:
+                continue
+            
+            dx = end_pos[0] - start_pos[0]
+            dy = end_pos[1] - start_pos[1]
+            
+            if isinstance(component, ContainerModel):
+                self._layout_engine.move_children_with_parent(item_id, dx, dy)
+                
+                layout = getattr(component, 'layout', 'none')
+                if layout != 'none':
+                    self._layout_engine.relayout(component)
+            
+            parent_id = getattr(component, 'parent_id', '')
+            if parent_id:
+                parent = self._project_model.get_component(parent_id)
+                if parent and isinstance(parent, ContainerModel):
+                    parent_layout = getattr(parent, 'layout', 'none')
+                    if parent_layout != 'none':
+                        siblings = self._get_siblings(component, parent)
+                        overlaps = OverlapDetector.detect(component, siblings)
+                        if overlaps:
+                            adjustments = OverlapAvoider.avoid(
+                                component, overlaps, parent_layout,
+                                spacing=getattr(parent, 'spacing', 5),
+                                container=parent
+                            )
+                            for comp_id, (new_x, new_y) in adjustments.items():
+                                sibling = self._project_model.get_component(comp_id)
+                                if sibling:
+                                    sibling._x = new_x
+                                    sibling._y = new_y
+                                    sibling.data_changed.emit()
+    
+    def _get_siblings(self, component, parent):
+        children_ids = getattr(parent, 'children', [])
+        siblings = []
+        for child_id in children_ids:
+            if child_id != component.id:
+                child = self._project_model.get_component(child_id)
+                if child:
+                    siblings.append(child)
+        return siblings
     
     def _update_alignment_guides(self):
         """更新对齐辅助线。"""

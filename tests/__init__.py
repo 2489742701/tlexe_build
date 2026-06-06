@@ -287,7 +287,7 @@ class TestProject(TestBase):
         try:
             from models import ProjectModel
             
-            test_file = Path("samples/galgame示例.itexe")
+            test_file = Path("samples/galgame示例.py")
             if not test_file.exists():
                 self.logger.warning(f"测试文件不存在: {test_file}")
                 self.skipTest(f"测试文件不存在: {test_file}")
@@ -484,7 +484,7 @@ class TestFlow(TestBase):
             from models import ProjectModel
             from views.state_machine_view import StateMachineDialog
             
-            test_file = Path("samples/galgame示例.itexe")
+            test_file = Path("samples/galgame示例.py")
             if not test_file.exists():
                 self.logger.warning(f"测试文件不存在: {test_file}")
                 self.skipTest(f"测试文件不存在: {test_file}")

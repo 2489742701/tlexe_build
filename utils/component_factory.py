@@ -224,6 +224,13 @@ class ComponentFactory:
         """
         comp_type = model.type
         
+        from models.component_registry import ComponentRegistry
+        import logging
+        if not ComponentRegistry.is_registered(comp_type):
+            logging.getLogger(__name__).warning(
+                f"组件类型 {comp_type} 未在 ComponentRegistry 中注册，创建可能失败"
+            )
+        
         creators = {
             'button': ComponentFactory._create_button,
             'label': ComponentFactory._create_label,
@@ -238,6 +245,10 @@ class ComponentFactory:
             'hidden_button': ComponentFactory._create_hidden_button,
             'image_button': ComponentFactory._create_image_button,
             'image_carousel': ComponentFactory._create_image_carousel,
+            'lottery': ComponentFactory._create_lottery,
+            'text_alternating': ComponentFactory._create_alternating,
+            'image_alternating': ComponentFactory._create_alternating,
+            'confirm_button': ComponentFactory._create_confirm_button,
             'image': ComponentFactory._create_image,
             'video': ComponentFactory._create_video,
         }
@@ -342,6 +353,15 @@ class ComponentFactory:
         checkbox.setText(model.text or "复选框")
         checkbox.setChecked(model.checked)
         checkbox.resize(model.width, model.height)
+        
+        alignment = getattr(model, 'alignment', 'left')
+        if alignment == 'left':
+            checkbox.setStyleSheet(checkbox.styleSheet() + "QCheckBox { padding-left: 5px; }")
+        elif alignment == 'right':
+            checkbox.setStyleSheet(checkbox.styleSheet() + "QCheckBox { padding-right: 5px; }")
+        elif alignment == 'center':
+            checkbox.setStyleSheet(checkbox.styleSheet() + "QCheckBox { padding-left: 0px; }")
+        
         StyleHelper.apply_style(checkbox, model.style)
         return checkbox
     
@@ -597,6 +617,131 @@ class ComponentFactory:
             fallback_label.setStyleSheet("background-color: #1a1a1a; color: #fff; padding: 20px;")
             layout.addWidget(fallback_label)
         
+        StyleHelper.apply_style(container, model.style)
+        return container
+    
+    @staticmethod
+    def _create_confirm_button(model) -> QWidget:
+        """创建确认按钮控件。"""
+        from PySide6.QtWidgets import QPushButton
+        button = QPushButton()
+        button.setText(model.text or "确认")
+        button.resize(model.width, model.height)
+        button.setProperty("component_model", model)
+        
+        is_confirmed = getattr(model, 'is_confirmed', False)
+        if is_confirmed:
+            button.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; border-radius: 5px;")
+        else:
+            StyleHelper.apply_style(button, model.style)
+        return button
+    
+    @staticmethod
+    def _create_alternating(model) -> QWidget:
+        """创建交替变换控件（文字/图片通用）。"""
+        placeholder = "文字交替变换" if getattr(model, 'display_mode', 'text') == 'text' else "图片交替变换"
+        return ComponentFactory._create_item_switcher(model, placeholder)
+
+    @staticmethod
+    def _create_lottery(model) -> QWidget:
+        """创建抽奖控件。"""
+        placeholder = "抽奖" if getattr(model, 'display_mode', 'image') == 'text' else "抽奖（图片模式）"
+        return ComponentFactory._create_item_switcher(model, placeholder)
+
+    @staticmethod
+    def _create_item_switcher(model, placeholder: str = "") -> QWidget:
+        """创建候选项切换控件（交替变换/抽奖共用）。
+
+        根据 display_mode 分派文字大字或图片显示，
+        底部绘制指示器圆点。
+        连接模型的 current_index_changed 信号实现动画时实时刷新。
+        """
+        from PySide6.QtWidgets import QLabel, QVBoxLayout
+        from PySide6.QtCore import Qt
+
+        container = QWidget()
+        container.resize(model.width, model.height)
+        container.setProperty("component_model", model)
+
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(5, 5, 5, 5)
+
+        display_label = QLabel()
+        display_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        display_label.setMinimumHeight(model.height - 30)
+
+        display_mode = getattr(model, 'display_mode', 'text')
+        items = getattr(model, 'items', [])
+        item_labels = getattr(model, 'item_labels', [])
+        current_index = getattr(model, 'current_index', 0)
+
+        def _update_display():
+            idx = getattr(model, 'current_index', 0)
+            itms = getattr(model, 'items', [])
+            lbls = getattr(model, 'item_labels', [])
+            dm = getattr(model, 'display_mode', 'text')
+            if itms and 0 <= idx < len(itms):
+                if dm == 'text':
+                    text = lbls[idx] if idx < len(lbls) else str(itms[idx])
+                    display_label.setText(text)
+                    display_label.setStyleSheet("font-size: 28pt; font-weight: bold; color: #333333;")
+                    display_label.clear()
+                    display_label.setText(text)
+                else:
+                    from PySide6.QtGui import QPixmap
+                    pixmap = QPixmap(itms[idx])
+                    if not pixmap.isNull():
+                        display_label.setPixmap(pixmap.scaled(
+                            container.width() - 10, container.height() - 40,
+                            Qt.AspectRatioMode.KeepAspectRatio,
+                            Qt.TransformationMode.SmoothTransformation
+                        ))
+                    else:
+                        text = lbls[idx] if idx < len(lbls) else "图片加载失败"
+                        display_label.clear()
+                        display_label.setText(text)
+            dots = " ".join(["●" if i == idx else "○" for i in range(len(itms))]) if itms else ""
+            indicator_label.setText(dots)
+
+        if items and 0 <= current_index < len(items):
+            if display_mode == 'text':
+                text = item_labels[current_index] if current_index < len(item_labels) else str(items[current_index])
+                display_label.setText(text)
+                display_label.setStyleSheet("font-size: 28pt; font-weight: bold; color: #333333;")
+            else:
+                from PySide6.QtGui import QPixmap
+                pixmap = QPixmap(items[current_index])
+                if not pixmap.isNull():
+                    display_label.setPixmap(pixmap.scaled(
+                        model.width - 10, model.height - 40,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    ))
+                else:
+                    text = item_labels[current_index] if current_index < len(item_labels) else "图片加载失败"
+                    display_label.setText(text)
+        else:
+            display_label.setText(placeholder or "候选项切换")
+            if display_mode == 'text':
+                display_label.setStyleSheet("font-size: 28pt; font-weight: bold; color: #999999;")
+
+        layout.addWidget(display_label)
+
+        indicator_label = QLabel()
+        indicator_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        indicator_label.setFixedHeight(15)
+        indicator_label.setStyleSheet("font-size: 8pt; color: #999999;")
+        if items:
+            dots = " ".join(["●" if i == current_index else "○" for i in range(len(items))])
+            indicator_label.setText(dots)
+        layout.addWidget(indicator_label)
+
+        if hasattr(model, 'current_index_changed'):
+            model.current_index_changed.connect(lambda: _update_display())
+
+        container._display_label = display_label
+        container._indicator_label = indicator_label
+
         StyleHelper.apply_style(container, model.style)
         return container
     

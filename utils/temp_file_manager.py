@@ -107,14 +107,14 @@ class TempFileManager:
         """生成临时保存路径。
         
         Returns:
-            临时文件路径，格式为 unsaved_project_{随机数字}.itexe
+            临时文件路径，格式为 unsaved_project_{随机数字}.py
             
         ## 修复说明 (2026-04-02)
         从 AppManager._get_temp_save_path() 方法抽取。
         """
         random_str = ''.join(random.choices(string.digits, k=8))
         temp_dir = tempfile.gettempdir()
-        return os.path.join(temp_dir, f"unsaved_project_{random_str}.itexe")
+        return os.path.join(temp_dir, f"unsaved_project_{random_str}.py")
     
     def add_unsaved_project(self, file_path: str, name: str) -> List[Dict[str, Any]]:
         """添加未保存项目到列表。
@@ -199,7 +199,7 @@ class TempFileManager:
         
         try:
             for filename in os.listdir(temp_dir):
-                if filename.startswith('unsaved_project_') and filename.endswith('.itexe'):
+                if filename.startswith('unsaved_project_') and (filename.endswith('.py') or filename.endswith('.itexe')):
                     file_path = os.path.join(temp_dir, filename)
                     try:
                         file_stat = os.stat(file_path)

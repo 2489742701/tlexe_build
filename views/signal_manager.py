@@ -244,6 +244,17 @@ class SignalManagerPanel(QWidget):
         """)
         layout.addWidget(header)
         
+        var_group = QGroupBox("变量")
+        var_layout = QFormLayout(var_group)
+        
+        self._player_name_edit = QLineEdit()
+        self._player_name_edit.setPlaceholderText("Enter player name...")
+        self._player_name_edit.setText(get_variable_manager().get_variable("player_name", ""))
+        self._player_name_edit.textChanged.connect(self._on_player_name_changed)
+        var_layout.addRow("Player:", self._player_name_edit)
+        
+        layout.addWidget(var_group)
+        
         self._tree = QTreeWidget()
         self._tree.setHeaderLabels(["信号连接", "类型", "状态"])
         self._tree.setColumnWidth(0, 200)
@@ -281,6 +292,11 @@ class SignalManagerPanel(QWidget):
         )
         hint.setStyleSheet("color: #666; font-size: 11px; padding: 8px;")
         layout.addWidget(hint)
+    
+    def _on_player_name_changed(self, name: str):
+        """处理玩家名改变。"""
+        from models.variable_system import VariableType
+        get_variable_manager().set_variable("player_name", name, VariableType.NAME, "Player name")
     
     def set_components(self, components: List[Dict]):
         """设置组件列表。"""

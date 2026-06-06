@@ -49,7 +49,7 @@ class TechComponentTemplate:
 LOTTERY_TEMPLATE = TechComponentTemplate(
     template_id="lottery",
     display_name="抽奖系统",
-    description="包含标题、轮播、按钮、结果标签的完整抽奖功能",
+    description="包含标题、抽奖组件、按钮、结果标签的完整抽奖功能（结果在本页面显示）",
     icon="lottery",
     components=[
         {
@@ -69,8 +69,8 @@ LOTTERY_TEMPLATE = TechComponentTemplate(
             "alignment": "center"
         },
         {
-            "comp_type": "image_carousel",
-            "name": "候选人轮播",
+            "comp_type": "lottery",
+            "name": "奖品轮播",
             "text": "",
             "x": 0,
             "y": 45,
@@ -81,9 +81,11 @@ LOTTERY_TEMPLATE = TechComponentTemplate(
                 "border_color": "#999999",
                 "border_radius": 5
             },
-            "images": [],
-            "image_labels": ["候选人1", "候选人2", "候选人3"],
-            "current_index": 0
+            "items": [],
+            "item_labels": ["奖品1", "奖品2", "奖品3"],
+            "display_mode": "image",
+            "current_index": 0,
+            "animation_duration": 3000
         },
         {
             "comp_type": "button",
@@ -110,15 +112,16 @@ LOTTERY_TEMPLATE = TechComponentTemplate(
         {
             "comp_type": "label",
             "name": "抽奖结果",
-            "text": "等待抽奖...",
+            "text": "点击按钮开始抽奖",
             "x": 0,
             "y": 285,
             "width": 300,
             "height": 30,
             "style": {
                 "background_color": "transparent",
-                "text_color": "#666666",
-                "font_size": 14
+                "text_color": "#4CAF50",
+                "font_size": 16,
+                "font_bold": True
             },
             "alignment": "center"
         }
@@ -440,6 +443,10 @@ class TechComponentManager:
             current_index = comp_data.pop("current_index", None)
             value = comp_data.pop("value", None)
             show_text = comp_data.pop("show_text", None)
+            items = comp_data.pop("items", None)
+            item_labels = comp_data.pop("item_labels", None)
+            display_mode = comp_data.pop("display_mode", None)
+            animation_duration = comp_data.pop("animation_duration", None)
             
             comp = create_component(comp_type, **comp_data)
             
@@ -486,8 +493,22 @@ class TechComponentManager:
             if show_text is not None and hasattr(comp, 'show_text'):
                 comp.show_text = show_text
             
+            if items is not None and hasattr(comp, 'items'):
+                comp.items = items
+            
+            if item_labels is not None and hasattr(comp, 'item_labels'):
+                comp.item_labels = item_labels
+            
+            if display_mode is not None and hasattr(comp, 'display_mode'):
+                comp.display_mode = display_mode
+            
+            if animation_duration is not None and hasattr(comp, 'animation_duration'):
+                comp.animation_duration = animation_duration
+            
             components.append(comp)
             component_ids.append(comp.id)
+        
+        linkages = []
         
         if template_id == "lottery":
             for comp in components:
@@ -495,15 +516,26 @@ class TechComponentManager:
                     carousel_id = None
                     result_label_id = None
                     for c in components:
-                        if c.name == "候选人轮播":
+                        if c.name == "奖品轮播":
                             carousel_id = c.id
                         elif c.name == "抽奖结果":
                             result_label_id = c.id
                     
                     if carousel_id:
                         comp._action.params["target_component_id"] = carousel_id
+                    
+                    if carousel_id and result_label_id:
+                        linkages = [
+                            {
+                                "source_component": carousel_id,
+                                "source_event": "lottery_finished",
+                                "target_component": result_label_id,
+                                "target_action": "set_text",
+                                "params": {"text_template": "恭喜中奖: {winner}"}
+                            }
+                        ]
         
-        return components
+        return components, linkages
     
     @staticmethod
     def get_template_info(template_id: str) -> Dict[str, Any]:
@@ -545,3 +577,135 @@ class TechComponentManager:
             模板ID列表
         """
         return list(TECH_TEMPLATES.keys())
+    
+    @staticmethod
+    def get_usage_guide(template_id: str) -> Dict[str, Any]:
+        """获取技术类控件的使用指引。
+        
+        为前端开发者提供完整的组件使用说明，包括生成方式、结构、
+        配置项、联动关系和手动编写风险。
+        
+        Args:
+            template_id: 模板ID
+            
+        Returns:
+            使用指引字典，包含：
+            - generation_method: 生成方式和代码示例
+            - component_structure: 组件层级结构
+            - configuration_items: 可配置项列表
+            - linkage_description: 联动配置说明
+            - risks: 手动编写风险警告
+            
+        Raises:
+            ValueError: 未知的模板ID
+        """
+        if template_id == "lottery":
+            return {
+                "generation_method": {
+                    "description": "使用 TechComponentManager 工厂方法一键生成抽奖组件",
+                    "code_example": (
+                        "from models.tech_components import TechComponentManager\n"
+                        "\n"
+                        "# 生成抽奖组件（图片轮播抽奖）\n"
+                        "components, linkages = TechComponentManager.create_tech_component(\n"
+                        "    'lottery',\n"
+                        "    parent_id='container_id',  # 父容器ID\n"
+                        "    offset_x=0,  # X偏移\n"
+                        "    offset_y=0   # Y偏移\n"
+                        ")\n"
+                        "\n"
+                        "# components: 包含4个组件的列表\n"
+                        "# linkages: 预设的联动关系列表"
+                    ),
+                    "important": "务必使用工厂方法生成，不要手动编写JSON"
+                },
+                "component_structure": {
+                    "description": "抽奖组件由4个子组件组成",
+                    "components": [
+                        {
+                            "name": "抽奖标题",
+                            "type": "label",
+                            "role": "显示抽奖活动标题"
+                        },
+                        {
+                            "name": "奖品轮播",
+                            "type": "lottery",
+                            "role": "抽奖组件，支持图片/文字双模式，执行抽奖动画，发射 lottery_finished 信号"
+                        },
+                        {
+                            "name": "开始抽奖",
+                            "type": "button",
+                            "role": "触发按钮，action.type=lottery_animation"
+                        },
+                        {
+                            "name": "抽奖结果",
+                            "type": "label",
+                            "role": "显示中奖结果，接收 lottery_finished 信号"
+                        }
+                    ],
+                    "parent_container": "所有子组件嵌套在同一容器内"
+                },
+                "configuration_items": [
+                    {
+                        "item": "display_mode",
+                        "description": "显示模式：'image'（图片轮播）或 'text'（文字大字）",
+                        "config_location": "lottery 组件的 display_mode 属性"
+                    },
+                    {
+                        "item": "items/item_labels",
+                        "description": "候选项列表（图片路径或文字内容）和标签",
+                        "config_location": "lottery 组件的 items 和 item_labels 属性"
+                    },
+                    {
+                        "item": "animation_duration",
+                        "description": "抽奖动画持续时间（毫秒），范围 500-30000",
+                        "config_location": "lottery 组件的 animation_duration 属性，或 action.params.duration_ms"
+                    },
+                    {
+                        "item": "result_template",
+                        "description": "中奖结果模板，支持 {winner} 占位符",
+                        "config_location": "linkage.params.text_template"
+                    }
+                ],
+                "linkage_description": {
+                    "flow": "按钮点击 → ActionExecutor._lottery_animation() → 模型.lottery_animation() → 信号lottery_finished → LinkageManager → 结果标签.set_text()",
+                    "config_format": {
+                        "source_component": "轮播组件ID",
+                        "source_event": "lottery_finished",
+                        "target_component": "结果标签ID",
+                        "target_action": "set_text",
+                        "params": {"text_template": "恭喜中奖: {winner}"}
+                    }
+                },
+                "risks": [
+                    "手动编写JSON时ID命名与工厂生成不一致，可能导致联动失效",
+                    "手动编写容易遗漏 linkage 配置，导致抽奖结果无法显示",
+                    "手动编写的组件结构可能与工厂组件产出的结构不兼容",
+                    "后续维护时模板和手动示例容易不同步"
+                ]
+            }
+        
+        template = TECH_TEMPLATES.get(template_id)
+        if not template:
+            raise ValueError(f"未知的模板ID: {template_id}")
+        
+        return {
+            "generation_method": {
+                "description": f"使用 TechComponentManager 工厂方法生成 {template.display_name}",
+                "code_example": (
+                    f"from models.tech_components import TechComponentManager\n"
+                    f"components, linkages = TechComponentManager.create_tech_component('{template_id}')"
+                ),
+                "important": "务必使用工厂方法生成，不要手动编写JSON"
+            },
+            "component_structure": {
+                "description": template.description,
+                "component_count": len(template.components)
+            },
+            "configuration_items": [],
+            "linkage_description": {},
+            "risks": [
+                "手动编写JSON可能导致组件结构不一致",
+                "后续维护时模板和手动示例容易不同步"
+            ]
+        }

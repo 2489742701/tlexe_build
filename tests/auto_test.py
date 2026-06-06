@@ -51,7 +51,7 @@ class AutoTestManager(QObject):
     ## 使用示例
     ```python
     test_manager = AutoTestManager(session_logger)
-    test_manager.add_step("打开项目", lambda: open_project("test.itexe"))
+    test_manager.add_step("打开项目", lambda: open_project("test.py"))
     test_manager.add_step("打开蓝图", open_blueprint)
     test_manager.start()
     ```
@@ -308,7 +308,7 @@ class BlueprintAutoTest(QObject):
     
     def _step_open_project(self):
         """步骤：打开示例项目。"""
-        sample_file = "samples/galgame示例.itexe"
+        sample_file = "samples/galgame示例.py"
         if not os.path.exists(sample_file):
             raise FileNotFoundError(f"示例项目不存在: {sample_file}")
         

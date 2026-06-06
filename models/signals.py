@@ -15,7 +15,7 @@
 from models.signals import global_signals
 
 # 发射信号
-global_signals.project_loaded.emit("/path/to/project.itexe")
+global_signals.project_loaded.emit("/path/to/project.py")
 ```
 
 ### 连接信号（信号接收者）
@@ -223,7 +223,7 @@ class GlobalSignals(QObject):
         global_signals.window.selected.connect(self._on_window_selected)
         
         # 发射信号
-        global_signals.project.loaded.emit("/path/to/project.itexe")
+        global_signals.project.loaded.emit("/path/to/project.py")
         global_signals.window.selected.emit(window_id)
         ```
     

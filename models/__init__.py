@@ -5,8 +5,9 @@ from .components import (
     ButtonModel, LabelModel, InputModel, ContainerModel,
     CheckBoxModel, ComboBoxModel, ImageModel, VideoModel, ProgressBarModel,
     HiddenButtonModel, ImageButtonModel, ImageCarouselModel,
+    AlternatingModel, TextAlternatingModel, ImageAlternatingModel,
     GroupNodeModel,
-    create_component, COMPONENT_TYPE_MAP
+    create_component
 )
 from .window import WindowModel, WindowType, ActionType, ActionDefinition, DEFAULT_ACTIONS
 from .variable_system import (
@@ -21,9 +22,11 @@ from .communication_system import (
 from .component_registry import (
     ComponentRegistry,
     ComponentMeta,
+    RegistrationConsistencyReport,
     register_component,
     auto_register_from_module
 )
+from .registry_init import register_all_components
 from .model_helpers import (
     ObservableProperty,
     PositionProperty,
@@ -54,9 +57,12 @@ __all__ = [
     'HiddenButtonModel',
     'ImageButtonModel',
     'ImageCarouselModel',
+    'AlternatingModel',
+    'TextAlternatingModel',
+    'ImageAlternatingModel',
+    'ConfirmButtonModel',
     'GroupNodeModel',
     'create_component',
-    'COMPONENT_TYPE_MAP',
     'WindowModel',
     'WindowType',
     'ActionType',
@@ -75,8 +81,10 @@ __all__ = [
     # 新增：组件注册中心
     'ComponentRegistry',
     'ComponentMeta',
+    'RegistrationConsistencyReport',
     'register_component',
     'auto_register_from_module',
+    'register_all_components',
     # 新增：模型辅助工具
     'ObservableProperty',
     'PositionProperty',

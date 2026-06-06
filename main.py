@@ -4,11 +4,11 @@
 
 命令行参数:
     python main.py                           # 正常启动，显示欢迎页
-    python main.py project.itexe             # 直接打开项目文件
-    python main.py --dev project.itexe       # 开发者模式打开项目
-    python main.py --run project.itexe       # 直接运行项目（不打开编辑器）
+    python main.py project.py                # 直接打开项目文件
+    python main.py --dev project.py          # 开发者模式打开项目
+    python main.py --run project.py          # 直接运行项目（不打开编辑器）
     python main.py --skip-welcome            # 跳过欢迎页，直接显示空白编辑器
-    python main.py -r -d samples/demo.itexe  # 开发者模式直接运行项目
+    python main.py -r -d samples/demo.py     # 开发者模式直接运行项目
 
 ## 修复说明 (2026-04-02)
 【问题】AppManager 类承担了过多职责（初始化、日志、开发者模式、字体设置、
@@ -32,6 +32,7 @@ import argparse
 import traceback
 from datetime import datetime
 from PySide6.QtWidgets import QApplication, QStackedWidget, QMessageBox
+from PySide6.QtCore import Qt
 
 from models import ProjectModel
 from views import MainWindow
@@ -109,16 +110,16 @@ def parse_args():
         epilog='''
 示例:
   python main.py                           # 正常启动，显示欢迎页
-  python main.py project.itexe             # 直接打开项目文件
-  python main.py --run project.itexe       # 直接运行项目
-  python main.py -r -d samples/demo.itexe  # 开发者模式运行项目
+  python main.py project.py                # 直接打开项目文件
+  python main.py --run project.py          # 直接运行项目
+  python main.py -r -d samples/demo.py     # 开发者模式运行项目
   python main.py --skip-welcome            # 跳过欢迎页
         '''
     )
     parser.add_argument(
         'project', 
         nargs='?', 
-        help='要打开的项目文件路径 (.itexe)'
+        help='要打开的项目文件路径 (.py 或 .itexe)'
     )
     parser.add_argument(
         '-d', '--dev', 
@@ -275,30 +276,108 @@ class AppManager:
     
     def _check_unsaved_changes(self) -> bool:
         """检查是否有未保存的修改，如果有则提示用户。
-        
+
+        使用 Save/Discard/Cancel 三按钮对话框，
+        保存失败时中止操作，确保数据不丢失。
+
         Returns:
-            bool: True 表示可以继续操作，False 表示用户取消了操作
+            bool: True 表示可以继续操作，False 表示用户取消或保存失败
         """
         if not self._project_model or not self._project_model.is_dirty:
             return True
-        
-        reply = QMessageBox.question(
-            self._stacked_widget,
-            "未保存的修改",
-            "当前项目有未保存的修改，是否保存？",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Yes
+
+        # 构建三按钮对话框：保存 / 放弃 / 取消
+        dialog = QMessageBox(self._stacked_widget)
+        dialog.setWindowTitle("未保存的修改")
+        dialog.setText("当前项目有未保存的修改。")
+        dialog.setInformativeText("是否保存修改？")
+        dialog.setStandardButtons(
+            QMessageBox.StandardButton.Save |
+            QMessageBox.StandardButton.Discard |
+            QMessageBox.StandardButton.Cancel
         )
-        
-        if reply == QMessageBox.StandardButton.Yes:
-            if self._controller:
-                self._controller._on_save_project()
-            return True
-        elif reply == QMessageBox.StandardButton.No:
+        dialog.setDefaultButton(QMessageBox.StandardButton.Save)
+        dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        reply = dialog.exec()
+
+        if reply == QMessageBox.StandardButton.Save:
+            # 尝试保存，保存失败时中止操作
+            try:
+                if self._controller:
+                    self._controller._on_save_project()
+                # 保存后检测 is_dirty 状态，若仍为脏则说明保存失败
+                if self._project_model and self._project_model.is_dirty:
+                    QMessageBox.warning(
+                        self._stacked_widget,
+                        "保存失败",
+                        "项目保存失败，请检查文件路径和权限后重试。"
+                    )
+                    return False
+                return True
+            except Exception as e:
+                self._session_logger.log("ERROR", f"保存项目时发生异常: {e}")
+                QMessageBox.warning(
+                    self._stacked_widget,
+                    "保存失败",
+                    f"保存项目时发生错误：\n{str(e)}"
+                )
+                return False
+        elif reply == QMessageBox.StandardButton.Discard:
             return True
         else:
             return False
     
+    def _on_close_project(self):
+        """关闭当前项目，返回欢迎页。
+
+        完整流程编排：未保存变更检查 → 状态清理 → 页面切换。
+        """
+        # 前置检查：MainWindow 是否存在于 QStackedWidget 中
+        if self._main_window is not None:
+            if self._stacked_widget.indexOf(self._main_window) == -1:
+                self._session_logger.log("WARNING", "关闭项目时 MainWindow 不在 QStackedWidget 中，忽略")
+                return
+
+        # 步骤1：未保存变更检查
+        if not self._check_unsaved_changes():
+            return
+
+        # 步骤2：清理编辑器状态
+        self._cleanup_editor_state()
+
+        # 步骤3：切换到欢迎页
+        self._switch_to_welcome()
+
+    def _cleanup_editor_state(self):
+        """清理编辑器状态。
+
+        断开 ProjectController 与 ProjectModel 的关联，
+        置空 AppManager 的 _project_model 引用。
+        注意：不销毁 MainWindow 实例，保留在 QStackedWidget 中以复用。
+        """
+        if self._controller is not None:
+            self._controller.project_model = None
+
+        self._project_model = None
+
+        self._session_logger.log("INFO", "编辑器状态已清理")
+
+    def _switch_to_welcome(self):
+        """切换到欢迎页并刷新数据。"""
+        if self._welcome_page is None:
+            self._session_logger.log("ERROR", "欢迎页实例为 None，无法切换")
+            return
+
+        self._stacked_widget.setCurrentWidget(self._welcome_page)
+
+        self._stacked_widget.setWindowTitle("UI快速开发工具")
+
+        try:
+            self._welcome_page.refresh_data()
+        except Exception as e:
+            self._session_logger.log("WARNING", f"欢迎页刷新异常: {e}")
+
     def _on_new_project(self):
         """新建项目。"""
         if not self._check_unsaved_changes():
@@ -370,6 +449,7 @@ class AppManager:
         """显示编辑器窗口。"""
         if self._main_window is None:
             self._main_window = MainWindow()
+            self._main_window.close_project_requested.connect(self._on_close_project)
             self._stacked_widget.addWidget(self._main_window)
         
         if self._controller is None:
@@ -405,8 +485,10 @@ class AppManager:
         self._session_logger.log("INFO", f"直接运行项目: {project_path}")
         
         try:
+            from utils.py_project_format import python_code_to_dict
             with open(project_path, 'r', encoding='utf-8') as f:
-                project_data = json.load(f)
+                content = f.read()
+            project_data = python_code_to_dict(content)
             
             runner = Runner()
             runner.run(project_data)
@@ -424,23 +506,77 @@ class AppManager:
 
 def main():
     """应用程序主函数。"""
+    _setup_file_logging()
     sys.excepthook = exception_hook
     
-    args = parse_args()
+    try:
+        args = parse_args()
+    except Exception as e:
+        _write_fatal_log(f"parse_args failed: {e}")
+        sys.exit(1)
     
-    if args.run and args.project:
-        manager = AppManager(dev_mode=args.dev)
-        sys.exit(manager.run_project_directly(args.project))
-    
-    manager = AppManager(dev_mode=args.dev, skip_welcome=args.skip_welcome)
-    
-    if args.project:
-        manager.open_project_file(args.project)
-    
-    if args.test_blueprint:
-        manager.test_blueprint_auto()
-    
-    sys.exit(manager.run())
+    try:
+        if args.run and args.project:
+            manager = AppManager(dev_mode=args.dev)
+            sys.exit(manager.run_project_directly(args.project))
+        
+        manager = AppManager(dev_mode=args.dev, skip_welcome=args.skip_welcome)
+        
+        if args.project:
+            manager.open_project_file(args.project)
+        
+        if args.test_blueprint:
+            manager.test_blueprint_auto()
+        
+        sys.exit(manager.run())
+    except Exception as e:
+        _write_fatal_log(f"Fatal error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+        try:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(None, "启动失败", f"程序启动失败:\n\n{type(e).__name__}: {e}\n\n详细日志已保存。")
+        except:
+            pass
+        sys.exit(1)
+
+
+def _setup_file_logging():
+    """设置文件日志，将所有 logging 输出重定向到文件。"""
+    import logging
+    try:
+        appdata = os.environ.get('APPDATA', '')
+        log_dir = os.path.join(appdata, 'UIDevTool', 'session_logs')
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
+        
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        root_logger.addHandler(file_handler)
+        
+        logging.getLogger().info(f"文件日志已启动: {log_file}")
+    except Exception:
+        pass
+
+
+def _write_fatal_log(msg: str):
+    try:
+        from datetime import datetime
+        appdata = os.environ.get('APPDATA', '')
+        log_dir = os.path.join(appdata, 'UIDevTool', 'crash_logs')
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, f"fatal_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        with open(log_file, 'w', encoding='utf-8') as f:
+            f.write(f"UI快速开发工具 - 启动失败日志\n")
+            f.write(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Python: {sys.version}\n")
+            f.write(f"cwd: {os.getcwd()}\n")
+            f.write(f"{'='*60}\n\n")
+            f.write(msg)
+    except:
+        pass
 
 
 if __name__ == "__main__":

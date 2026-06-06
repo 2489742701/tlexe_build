@@ -30,11 +30,14 @@ COMPONENT_CATEGORIES: Dict[str, Dict[str, str]] = {
     },
     "功能类": {
         "button": "按钮",
+        "confirm_button": "确认按钮",
         "checkbox": "复选框",
         "combobox": "下拉框",
         "progressbar": "进度条",
         "hidden_button": "隐藏按钮",
         "image_button": "图片按钮",
+        "text_alternating": "文字交替变换",
+        "image_alternating": "图片交替变换",
     },
     "媒体类": {
         "image": "图片",
@@ -66,6 +69,8 @@ COMPONENT_ICONS: Dict[str, str] = {
     "container": "[C]",
     "input": "[I]",
     "label": "[T]",
+    "text_alternating": "[TA]",
+    "image_alternating": "[IA]",
 }
 
 

@@ -330,7 +330,7 @@
       "x": 50,
       "y": 45,
       "width": 300,
-      "height": 60,
+      "height": 45,
       "text": "经过我们的判断，\n你的电脑确实已经开机了！",
       "parent_id": "cont_result",
       "style": {
@@ -353,8 +353,7 @@
       "enabled": true,
       "custom_props": {},
       "alignment": "center",
-      "word_wrap": true,
-      "auto_size": true
+      "word_wrap": true
     },
     {
       "id": "lbl_detail",

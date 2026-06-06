@@ -1196,6 +1196,7 @@ class DesignerView(QGraphicsView):
     
     def resizeEvent(self, event):
         super().resizeEvent(event)
+
     
     def reset_to_fit_window(self):
         """重置为自动适应窗口模式。"""
@@ -1419,7 +1420,8 @@ class DesignerView(QGraphicsView):
     
     def set_desktop_size(self, width: int, height: int):
         self._scene.set_desktop_size(width, height)
-        self._fit_desktop_to_view()
+        if not self._initial_fit_done:
+            self._fit_desktop_to_view()
     
     def set_project_model(self, model):
         self._project_model = model

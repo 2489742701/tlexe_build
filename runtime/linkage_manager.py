@@ -25,6 +25,11 @@ if TYPE_CHECKING:
 def _log_debug(message: str):
     """调试日志输出。"""
     print(f"[LinkageManager] {message}")
+    try:
+        from dev_mode.debug_logger import DebugLogger
+        DebugLogger.debug(message, "linkage")
+    except Exception:
+        pass
 
 
 class LinkageManager(QObject):
@@ -270,6 +275,8 @@ class LinkageManager(QObject):
                     
                     if hasattr(source_component, 'image_labels') and 0 <= idx < len(source_component.image_labels):
                         replacements['{winner}'] = str(source_component.image_labels[idx])
+                    elif hasattr(source_component, 'item_labels') and 0 <= idx < len(source_component.item_labels):
+                        replacements['{winner}'] = str(source_component.item_labels[idx])
                     
                     if hasattr(source_component, 'images'):
                         if 0 <= idx < len(source_component.images):

@@ -14,15 +14,17 @@ from utils.component_factory import ComponentFactory
 
 
 def test_lottery_sample():
-    """测试年会抽奖示例的联动系统和组件工厂。"""
+    """测试交替变换演示示例的联动系统和组件工厂。"""
     
-    sample_path = os.path.join(os.path.dirname(__file__), '..', 'samples', '年会抽奖示例.itexe')
+    sample_path = os.path.join(os.path.dirname(__file__), '..', 'samples', '交替变换演示.py')
     
     with open(sample_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+        content = f.read()
+    from utils.py_project_format import python_code_to_dict
+    data = python_code_to_dict(content)
     
     print('=' * 50)
-    print('年会抽奖示例 - 完整验证')
+    print('交替变换演示 - 完整验证')
     print('=' * 50)
     
     project_model = ProjectModel()
@@ -72,7 +74,7 @@ def test_lottery_sample():
     all_passed = True
     for i, (template, args, expected_name) in enumerate(test_cases):
         result = linkage_manager._replace_templates(template, args, {}, carousel)
-        status = '✓' if expected_name in result else '✗'
+        status = 'PASS' if expected_name in result else 'FAIL'
         if expected_name not in result:
             all_passed = False
         print(f'  [{status}] 模板{i+1}: {result}')
@@ -89,7 +91,7 @@ def test_lottery_sample():
     for name, create_fn in factory_tests:
         model = create_fn()
         widget = ComponentFactory.create_widget(model)
-        status = '✓' if widget else '✗'
+        status = 'PASS' if widget else 'FAIL'
         wtype = type(widget).__name__ if widget else 'None'
         print(f'  [{status}] {name}: {wtype}')
         if not widget:

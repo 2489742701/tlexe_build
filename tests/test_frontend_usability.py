@@ -22,8 +22,9 @@ from models.components import (
     ButtonModel, LabelModel, InputModel, ContainerModel,
     CheckBoxModel, ComboBoxModel, ImageModel, VideoModel, ProgressBarModel,
     HiddenButtonModel, ImageButtonModel, ImageCarouselModel,
-    COMPONENT_TYPE_MAP, create_component
+    create_component
 )
+from models.component_registry import ComponentRegistry
 from utils.component_factory import ComponentFactory
 from views.property_panel import PropertyPanel, COMPONENT_INFO
 
@@ -114,8 +115,8 @@ print("\n【测试4】官方案例序列化和反序列化")
 print("-" * 50)
 
 SAMPLE_FILES = [
-    'samples/系统检测示例.itexe',
-    'samples/年会抽奖示例.itexe',
+    'samples/系统检测示例.py',
+    'samples/交替变换演示.py',
 ]
 
 for sample_file in SAMPLE_FILES:

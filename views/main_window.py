@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QSplitter, QWidget, QVBoxLayout, QHBoxLayout,
     QToolBar, QMenuBar, QMenu, QStatusBar, QFileDialog,
     QMessageBox, QApplication, QInputDialog, QPushButton, QLabel,
-    QDockWidget, QToolButton
+    QDockWidget, QToolButton, QLineEdit
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence, QFont
@@ -57,6 +57,8 @@ class MainWindow(QMainWindow):
     run_from_current = Signal()                 # 从当前窗口运行请求
     export_to_python = Signal(str)              # 导出为Python脚本请求，参数：file_path 目标文件路径
     import_from_python = Signal(str)            # 从Python脚本导入请求，参数：file_path 源文件路径
+    # 【信号出口】导航信号
+    close_project_requested = Signal()          # 关闭当前项目，返回欢迎页
     
     # 【信号出口】组件操作信号
     add_component = Signal(str, str)            # 添加组件请求，参数：comp_type 组件类型, parent_id 父组件ID
@@ -394,10 +396,17 @@ class MainWindow(QMainWindow):
         file_menu.addAction(export_action)
         
         file_menu.addSeparator()
-        
+
+        # 【新增】关闭项目菜单项，绑定 Ctrl+W
+        close_project_action = QAction("关闭项目(&C)", self)
+        close_project_action.setShortcut(QKeySequence("Ctrl+W"))
+        close_project_action.triggered.connect(self.close_project_requested.emit)
+        file_menu.addAction(close_project_action)
+
+        # 【修改】退出菜单项：行为从 self.close 变更为发射 close_project_requested 信号
         exit_action = QAction("退出(&X)", self)
         exit_action.setShortcut(QKeySequence.StandardKey.Quit)
-        exit_action.triggered.connect(self.close)
+        exit_action.triggered.connect(self.close_project_requested.emit)
         file_menu.addAction(exit_action)
         
         edit_menu = menubar.addMenu("编辑(&E)")
@@ -698,27 +707,7 @@ class MainWindow(QMainWindow):
         run_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         toolbar.addWidget(run_btn)
         
-        toolbar.addSeparator()
-        
-        player_label = QLabel("Player:")
-        player_label.setStyleSheet("color: #666; font-size: 12px;")
-        toolbar.addWidget(player_label)
-        
-        from models.variable_system import get_variable_manager
-        self._player_name_edit = QLineEdit()
-        self._player_name_edit.setPlaceholderText("Enter name...")
-        self._player_name_edit.setText(get_variable_manager().get_variable("player_name", ""))
-        self._player_name_edit.setFixedWidth(150)
-        self._player_name_edit.setStyleSheet("""
-            QLineEdit {
-                border: 1px solid #ccc;
-                border-radius: 3px;
-                padding: 2px 5px;
-                font-size: 12px;
-            }
-        """)
-        self._player_name_edit.textChanged.connect(self._on_player_name_changed)
-        toolbar.addWidget(self._player_name_edit)
+
     
     def _init_statusbar(self):
         """初始化状态栏。"""
@@ -759,15 +748,10 @@ class MainWindow(QMainWindow):
         
         self.statusbar.addPermanentWidget(zoom_widget)
     
-    def _on_player_name_changed(self, name: str):
-        """处理玩家名改变。"""
-        from models.variable_system import get_variable_manager, VariableType
-        get_variable_manager().set_variable("player_name", name, VariableType.NAME, "Player name")
-    
     def _on_open_project(self):
         """打开项目对话框。"""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "打开项目", "", "项目文件 (*.itexe);;所有文件 (*.*)"
+            self, "打开项目", "", "项目文件 (*.py);;旧格式 (*.itexe);;所有文件 (*.*)"
         )
         if file_path:
             self.open_project.emit(file_path)
@@ -775,7 +759,7 @@ class MainWindow(QMainWindow):
     def _on_save_project_as(self):
         """另存为项目对话框。"""
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "保存项目", "", "项目文件 (*.itexe);;所有文件 (*.*)"
+            self, "保存项目", "", "项目文件 (*.py);;旧格式 (*.itexe);;所有文件 (*.*)"
         )
         if file_path:
             self.save_project_as.emit(file_path)
@@ -934,8 +918,8 @@ class MainWindow(QMainWindow):
             reply = QMessageBox.question(
                 self,
                 "注册文件关联",
-                "是否要注册 .itexe 文件关联？\n\n"
-                "注册后，双击 .itexe 文件即可启动程序并加载项目。\n\n"
+                "是否要注册项目文件关联？\n\n"
+                "注册后，双击项目 .py 文件即可启动程序并加载项目。\n\n"
                 "注意：可能需要管理员权限。",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )

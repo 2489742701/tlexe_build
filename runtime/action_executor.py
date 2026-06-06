@@ -29,6 +29,7 @@ class ActionExecutor(QObject):
     ## 支持的动作类型
     - none: 无动作
     - close_program: 关闭程序
+    - close_window: 关闭当前窗口
     - open_window: 打开窗口
     - switch_window: 切换窗口
     - random_image: 随机选图
@@ -41,11 +42,13 @@ class ActionExecutor(QObject):
     Signals:
         action_executed: 动作执行完成信号 (action_type, success)
         window_switch_requested: 窗口切换请求信号 (window_id)
+        window_close_requested: 窗口关闭请求信号
         program_close_requested: 程序关闭请求信号
     """
     
     action_executed = Signal(str, bool)
     window_switch_requested = Signal(str)
+    window_close_requested = Signal()
     program_close_requested = Signal()
     
     def __init__(self, project_model: 'ProjectModel', parent=None):
@@ -80,6 +83,9 @@ class ActionExecutor(QObject):
         elif action_type == ActionType.CLOSE_PROGRAM.value:
             return self._close_program()
         
+        elif action_type == ActionType.CLOSE_WINDOW.value:
+            return self._close_window()
+        
         elif action_type == ActionType.OPEN_WINDOW.value:
             return self._open_window(target_window_id, action_params)
         
@@ -104,6 +110,12 @@ class ActionExecutor(QObject):
         elif action_type == ActionType.LOTTERY_ANIMATION.value:
             return self._lottery_animation(target_component_id, action_params)
         
+        elif action_type == ActionType.START_ALTERNATING.value:
+            return self._start_alternating(target_component_id, action_params)
+        
+        elif action_type == ActionType.STOP_ALTERNATING.value:
+            return self._stop_alternating(target_component_id)
+        
         elif action_type == ActionType.SET_TEXT.value:
             return self._set_text(target_component_id, action_params)
         
@@ -113,11 +125,31 @@ class ActionExecutor(QObject):
         elif action_type == ActionType.HIDE_COMPONENT.value:
             return self._hide_component(target_component_id)
         
+        elif action_type == ActionType.SHOW_MESSAGE.value:
+            return self._show_message(action_params)
+        
         elif action_type == ActionType.EXECUTE_PYTHON.value:
             return self._execute_python(action_config.python_code or action_params.get("code", ""))
         
         self.action_executed.emit(action_type, False)
         return False
+    
+    def _show_message(self, params: Dict[str, Any]) -> bool:
+        """显示消息框。"""
+        from PySide6.QtWidgets import QMessageBox
+        message = params.get("message", "")
+        title = params.get("title", "提示")
+        msg_type = params.get("type", "info")
+        
+        if msg_type == "warning":
+            QMessageBox.warning(None, title, message)
+        elif msg_type == "error":
+            QMessageBox.critical(None, title, message)
+        else:
+            QMessageBox.information(None, title, message)
+        
+        self.action_executed.emit("show_message", True)
+        return True
     
     def _close_program(self) -> bool:
         """关闭程序。
@@ -127,6 +159,16 @@ class ActionExecutor(QObject):
         """
         self.program_close_requested.emit()
         self.action_executed.emit("close_program", True)
+        return True
+    
+    def _close_window(self) -> bool:
+        """关闭当前窗口。
+        
+        Returns:
+            是否成功
+        """
+        self.window_close_requested.emit()
+        self.action_executed.emit("close_window", True)
         return True
     
     def _open_window(self, window_id: str, params: Dict[str, Any]) -> bool:
@@ -260,7 +302,7 @@ class ActionExecutor(QObject):
     def _lottery_animation(self, component_id: str, params: Dict[str, Any]) -> bool:
         """执行抽奖动画。
         
-        支持图片轮播（ImageCarouselModel）和文字轮播（LabelModel）。
+        支持 LotteryModel（优先）、ImageCarouselModel 和 LabelModel。
         
         Args:
             component_id: 目标组件ID
@@ -271,12 +313,16 @@ class ActionExecutor(QObject):
         Returns:
             是否成功
         """
-        from models.components import ImageCarouselModel, LabelModel
+        from models.components import LotteryModel, ImageCarouselModel, LabelModel
         
         component = self._project_model.get_component(component_id)
         duration_ms = params.get("duration_ms", 3000)
         
-        if isinstance(component, ImageCarouselModel):
+        if isinstance(component, LotteryModel):
+            component.lottery_animation(duration_ms=duration_ms)
+            self.action_executed.emit("lottery_animation", True)
+            return True
+        elif isinstance(component, ImageCarouselModel):
             component.lottery_animation(duration_ms=duration_ms)
             self.action_executed.emit("lottery_animation", True)
             return True
@@ -284,6 +330,51 @@ class ActionExecutor(QObject):
             candidates = params.get("candidates", None)
             component.lottery_animation(candidates=candidates, duration_ms=duration_ms)
             self.action_executed.emit("lottery_animation", True)
+            return True
+        return False
+    
+    def _start_alternating(self, component_id: str, params: Dict[str, Any]) -> bool:
+        """开始交替变换动画。
+        
+        支持 TextAlternatingModel 和 ImageAlternatingModel。
+        
+        Args:
+            component_id: 目标组件ID
+            params: 动画参数
+                - duration_ms: 动画时长（毫秒），默认3000
+                
+        Returns:
+            是否成功
+        """
+        from models.components import AlternatingModel
+        
+        component = self._project_model.get_component(component_id)
+        duration_ms = params.get("duration_ms", 3000)
+        
+        if isinstance(component, AlternatingModel):
+            component.start_alternating(duration_ms=duration_ms)
+            self.action_executed.emit("start_alternating", True)
+            return True
+        return False
+    
+    def _stop_alternating(self, component_id: str) -> bool:
+        """停止交替变换动画。
+        
+        支持 TextAlternatingModel 和 ImageAlternatingModel。
+        
+        Args:
+            component_id: 目标组件ID
+            
+        Returns:
+            是否成功
+        """
+        from models.components import AlternatingModel
+        
+        component = self._project_model.get_component(component_id)
+        
+        if isinstance(component, AlternatingModel):
+            component.stop_alternating()
+            self.action_executed.emit("stop_alternating", True)
             return True
         return False
     

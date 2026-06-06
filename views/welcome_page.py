@@ -243,7 +243,7 @@ class WelcomePage(QWidget):
     def _on_open_project(self):
         """打开项目对话框。"""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "打开项目", "", "项目文件 (*.itexe);;所有文件 (*.*)"
+            self, "打开项目", "", "项目文件 (*.py);;旧格式 (*.itexe);;所有文件 (*.*)"
         )
         if file_path:
             self.open_project_requested.emit(file_path)
@@ -264,9 +264,8 @@ class WelcomePage(QWidget):
             layout.setColumnStretch(col, 1)
         
         examples = [
-            ("Galgame示例项目", "一个完整的Galgame风格示例", "samples/galgame示例.itexe"),
-            ("文字抽奖", "文字轮播抽奖演示（lottery_animation）", "samples/文字抽奖示例.itexe"),
-            ("年会抽奖", "图片轮播抽奖演示（lottery_animation + set_text）", "samples/年会抽奖示例.itexe"),
+            ("交替变换演示", "文字随机滚动→停止出结果", "samples/交替变换演示.py"),
+            ("Galgame示例项目", "一个完整的Galgame风格示例", "samples/galgame示例.py"),
             ("电脑开机检测演示", "一个有趣的恶搞程序模板", "templates/test_template.py"),
         ]
         
@@ -295,7 +294,7 @@ class WelcomePage(QWidget):
                 print(f"模板数据获取成功: {template_data.get('name', '未命名')}")
                 self.open_template_requested.emit(template_data)
                 print("模板打开信号已发射")
-            elif template_path.endswith('.itexe'):
+            elif template_path.endswith('.itexe') or template_path.endswith('.py'):
                 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 full_path = os.path.join(base_dir, template_path)
                 print(f"尝试打开示例文件: {full_path}")
@@ -381,6 +380,7 @@ class WelcomePage(QWidget):
                 )
                 card.clicked.connect(self._on_recent_project_clicked)
                 card.delete_requested.connect(self._on_delete_recent_project)
+                card.delete_file_requested.connect(self._on_delete_project_file)
                 grid_layout.addWidget(card, row, col)
         else:
             empty_label = QLabel("暂无最近项目")
@@ -441,6 +441,7 @@ class WelcomePage(QWidget):
                 )
                 card.clicked.connect(self._on_unsaved_project_clicked)
                 card.delete_requested.connect(self._on_delete_unsaved_project)
+                card.delete_file_requested.connect(self._on_delete_project_file)
                 grid_layout.addWidget(card, row, col)
         else:
             empty_label = QLabel("暂无未保存项目")
@@ -500,6 +501,30 @@ class WelcomePage(QWidget):
         self._save_config()
         self._update_recent_projects()
     
+    def _on_delete_project_file(self, file_path: str):
+        """删除项目文件并从列表中移除。"""
+        if not file_path or not os.path.exists(file_path):
+            return
+        
+        from PySide6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(
+            self, "确认删除",
+            f"确定要删除此项目文件吗？\n\n{file_path}\n\n此操作不可恢复。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            QMessageBox.warning(self, "删除失败", f"无法删除文件:\n{e}")
+            return
+        
+        self._on_delete_recent_project(file_path)
+        self._on_delete_unsaved_project(file_path)
+    
     def _on_recent_project_clicked(self, file_path: str):
         """点击最近项目时的回调。"""
         if os.path.exists(file_path):
@@ -507,6 +532,15 @@ class WelcomePage(QWidget):
         else:
             QMessageBox.warning(self, "文件不存在", f"项目文件不存在: {file_path}")
     
+    def refresh_data(self):
+        """刷新欢迎页所有数据。
+
+        统一调用三个更新方法，供 AppManager 在切换页面后调用。
+        """
+        self._update_greeting()
+        self._update_recent_projects()
+        self._update_unsaved_projects()
+
     def add_recent_project(self, name: str, path: str):
         """添加最近项目。
         
@@ -619,6 +653,7 @@ class ProjectCardWidget(QFrame):
     
     clicked = Signal(str)
     delete_requested = Signal(str)
+    delete_file_requested = Signal(str)
     
     def __init__(self, title: str, description: str, path: str, can_delete: bool = True, parent=None):
         super().__init__(parent)
@@ -686,6 +721,9 @@ class ProjectCardWidget(QFrame):
             menu.addSeparator()
             delete_action = menu.addAction("从列表中删除")
             delete_action.triggered.connect(lambda: self.delete_requested.emit(self._path))
+            if self._path and os.path.exists(self._path):
+                delete_file_action = menu.addAction("删除文件")
+                delete_file_action.triggered.connect(lambda: self.delete_file_requested.emit(self._path))
         
         menu.exec_(self.mapToGlobal(pos))
     

@@ -69,3 +69,14 @@ crash_logs/
 *.uix
 *.bak
 _trash/
+
+# Packaging output
+packaging/output/
+packaging/build_temp/
+packaging/build_env/
+*.exe
+
+# Temp files
+error.log
+output.log
+function_analysis.json

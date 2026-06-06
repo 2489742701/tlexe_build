@@ -117,6 +117,18 @@ class CanvasPresenter(QObject):
             'position': on_position_changed,
             'size': on_size_changed
         }
+        
+        from models.components import ContainerModel
+        if isinstance(comp, ContainerModel):
+            def on_data_changed(component_id: str = comp.id):
+                c = self._project_model.get_component(component_id)
+                if c and isinstance(c, ContainerModel) and getattr(c, 'layout', 'none') != 'none':
+                    from services.layout import LayoutEngine
+                    engine = LayoutEngine(self._project_model)
+                    engine.relayout(c)
+            
+            comp.data_changed.connect(on_data_changed)
+            self._component_connections[comp.id]['data_changed'] = on_data_changed
     
     def _disconnect_component_signals(self, comp_id: str):
         """断开组件信号连接。

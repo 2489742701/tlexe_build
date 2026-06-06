@@ -63,8 +63,10 @@ class AppInitializer:
         ("初始化日志系统", 10),
         ("加载开发者模式", 20),
         ("应用界面设置", 30),
+        ("统一组件注册", 40),
         ("预加载渲染器", 50),
         ("预加载属性编辑器", 70),
+        ("注册一致性检测", 80),
         ("初始化完成", 100),
     ]
     
@@ -139,14 +141,11 @@ class AppInitializer:
     def _preload_resources(self):
         """预加载所有核心资源。
         
-        ## 修复说明 (2026-04-02 MCP 启动缓存审查)
-        【问题】渲染器、属性编辑器等在首次使用时才加载，导致 UI 启动时显示不正确
-        【解决】在应用启动时预加载所有缓存，确保 UI 页面正常显示
-        【调用时机】在 UI 设置应用后、主窗口显示前调用
-        
         预加载内容包括：
-        1. 渲染器实例缓存
-        2. 属性编辑器注册
+        1. 统一组件注册（register_all_components）
+        2. 渲染器实例缓存
+        3. 属性编辑器注册
+        4. 注册一致性检测
         
         此方法应在 QApplication 创建后调用，因为部分资源依赖 Qt 环境。
         """
@@ -154,11 +153,21 @@ class AppInitializer:
             self._session_logger.log("INFO", "开始预加载核心资源...")
         
         try:
-            from renderers.renderer_factory_v2 import RendererFactoryV2
-            RendererFactoryV2.preload_all()
+            from models.registry_init import register_all_components
+            register_all_components()
             
             if self._session_logger:
-                preload_status = RendererFactoryV2.get_preload_status()
+                self._session_logger.log("INFO", "统一组件注册完成")
+        except Exception as e:
+            if self._session_logger:
+                self._session_logger.log("ERROR", f"统一组件注册失败: {e}")
+        
+        try:
+            from renderers.renderer_factory import RendererFactory
+            RendererFactory.preload_all()
+            
+            if self._session_logger:
+                preload_status = RendererFactory.get_preload_status()
                 cached_count = sum(1 for v in preload_status.values() if v)
                 total_count = len(preload_status)
                 self._session_logger.log("INFO", f"渲染器预加载完成: {cached_count}/{total_count}")
@@ -171,6 +180,8 @@ class AppInitializer:
         except Exception as e:
             if self._session_logger:
                 self._session_logger.log("ERROR", f"预加载资源失败: {e}")
+        
+        self._check_registration_consistency()
     
     def _import_all_property_editors(self):
         """导入所有属性编辑器模块以触发自动注册。
@@ -178,36 +189,71 @@ class AppInitializer:
         ## 修复说明 (2026-04-02 MCP 启动缓存审查)
         动态导入 views/property_editors 目录下的所有编辑器模块，
         触发类装饰器执行，完成属性编辑器的自动注册。
+        
+        ## 修复说明 (2026-06-07)
+        PyInstaller 打包后 os.listdir 目录不存在，改用 pkgutil 遍历包内模块，
+        同时保留显式导入列表作为回退。
         """
         import importlib
-        import os
+        import pkgutil
         
-        # 属性编辑器模块所在目录
         editors_package = 'views.property_editors'
-        editors_dir = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), 
-            'views', 'property_editors'
-        )
-        
-        if not os.path.exists(editors_dir):
-            if self._session_logger:
-                self._session_logger.log("WARNING", f"属性编辑器目录不存在: {editors_dir}")
-            return
-        
         imported_count = 0
-        for filename in os.listdir(editors_dir):
-            # 导入所有 .py 文件（排除 __init__.py）
-            if filename.endswith('.py') and filename != '__init__.py':
-                module_name = filename[:-3]  # 去掉 .py
+        
+        try:
+            package = importlib.import_module(editors_package)
+            for importer, module_name, is_pkg in pkgutil.iter_modules(package.__path__):
                 try:
                     importlib.import_module(f'{editors_package}.{module_name}')
                     imported_count += 1
                 except ImportError as e:
                     if self._session_logger:
                         self._session_logger.log("WARNING", f"导入编辑器模块失败 {module_name}: {e}")
+        except Exception as e:
+            if self._session_logger:
+                self._session_logger.log("WARNING", f"pkgutil 遍历失败，尝试显式导入: {e}")
+            for module_name in [
+                'base_editor', 'alternating_editor', 'lottery_editor', 'registry',
+                'button_editor', 'label_editor', 'input_editor', 'container_editor',
+                'checkbox_editor', 'combobox_editor', 'progressbar_editor',
+                'image_editor', 'video_editor', 'image_carousel_editor',
+                'hidden_button_editor', 'image_button_editor', 'groupbox_editor',
+                'textarea_editor', 'listwidget_editor', 'confirm_button_editor',
+            ]:
+                try:
+                    importlib.import_module(f'{editors_package}.{module_name}')
+                    imported_count += 1
+                except ImportError:
+                    pass
         
         if self._session_logger:
             self._session_logger.log("INFO", f"已导入 {imported_count} 个属性编辑器模块")
+    
+    def _check_registration_consistency(self):
+        """执行注册一致性检测并输出报告。"""
+        try:
+            from models.component_registry import ComponentRegistry
+            import logging
+            
+            reports = ComponentRegistry.check_registration_consistency()
+            if not reports:
+                if self._session_logger:
+                    self._session_logger.log("INFO", "注册一致性检测通过: 所有组件注册完整")
+                return
+            
+            for report in reports:
+                if report.severity == "ERROR":
+                    msg = f"注册一致性: {report.type_name} 缺失 {report.missing_items} - {report.suggestion}"
+                    if self._session_logger:
+                        self._session_logger.log("ERROR", msg)
+                else:
+                    msg = f"注册一致性: {report.type_name} 缺失 {report.missing_items}"
+                    if self._session_logger:
+                        self._session_logger.log("DEBUG", msg)
+            
+        except Exception as e:
+            if self._session_logger:
+                self._session_logger.log("WARNING", f"注册一致性检测失败: {e}")
     
     def run(self) -> QApplication:
         """执行所有初始化步骤。
@@ -228,23 +274,43 @@ class AppInitializer:
         ## 修复说明 (2026-04-02 MCP 启动缓存审查)
         新增第5步：核心资源预加载，确保 UI 启动时所有缓存已就绪。
         """
+        self._show_splash()
+        
         self.init_qapplication()
+        self.update_splash("创建应用实例", 5)
+        
         self.init_logging()
+        self.update_splash("初始化日志系统", 10)
+        
         self.init_dev_mode()
+        self.update_splash("加载开发者模式", 20)
+        
         self.init_ui_settings()
+        self.update_splash("应用界面设置", 30)
+        
         self._preload_resources()
+        self.update_splash("预加载渲染器", 50)
+        
+        self._import_all_property_editors()
+        self.update_splash("预加载属性编辑器", 70)
+        
+        self._check_registration_consistency()
+        self.update_splash("注册一致性检测", 80)
+        
+        self.update_splash("初始化完成", 100)
+        self.finish_splash()
         
         return self._app
     
+    def _show_splash(self):
+        """显示启动画面（跳过，避免 tkinter 干扰 PyInstaller 打包）"""
+        pass
+    
+    def update_splash(self, text: str, progress: int = None):
+        """更新启动画面状态"""
+        pass
+    
     def finish_splash(self, callback: Callable = None):
-        """关闭启动画面（已弃用）。
-        
-        Args:
-            callback: 回调函数（忽略）
-            
-        ## 修复说明 (2026-04-06)
-        启动画面功能已移除，此方法保留以保持向后兼容性。
-        如果提供了 callback，会立即执行。
-        """
+        """关闭启动画面"""
         if callback:
             callback()

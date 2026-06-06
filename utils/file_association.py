@@ -1,7 +1,7 @@
 """Windows 文件关联工具模块。
 
-本模块提供注册和注销 .itexe 文件关联的功能。
-注册后，双击 .itexe 文件即可启动程序并加载项目。
+本模块提供注册和注销 .py 项目文件关联的功能。
+注册后，双击项目 .py 文件即可启动程序并加载项目。
 
 注意：
 - 开发模式：注册 Python 解释器路径
@@ -15,21 +15,14 @@ import platform
 
 
 def is_windows() -> bool:
-    """检查是否为 Windows 系统。"""
     return platform.system() == 'Windows'
 
 
 def is_frozen() -> bool:
-    """检查是否为打包后的可执行文件。"""
     return getattr(sys, 'frozen', False)
 
 
 def get_exe_path() -> str:
-    """获取当前程序的执行路径。
-    
-    如果是打包后的 exe，返回 exe 路径。
-    如果是开发模式，返回 python 解释器路径和 main.py 路径。
-    """
     if is_frozen():
         return sys.executable
     else:
@@ -38,89 +31,57 @@ def get_exe_path() -> str:
 
 
 def can_register_file_association() -> tuple:
-    """检查是否可以注册文件关联。
-    
-    Returns:
-        (can_register, reason): 是否可以注册及原因说明
-    """
     if not is_windows():
         return False, "文件关联仅支持 Windows 系统"
-    
     if is_frozen():
         return False, "便携版程序不建议注册文件关联。\n\n原因：程序移动后文件关联会失效。\n\n如需文件关联功能，请使用安装版程序。"
-    
     return True, "可以注册文件关联"
 
 
 def register_file_association() -> tuple:
-    """注册 .itexe 文件关联。
-    
-    Returns:
-        (success, message): 成功状态和消息
-    """
+    """注册 .py 项目文件关联。"""
     if not is_windows():
         return False, "文件关联仅支持 Windows 系统"
-    
+
     try:
         import winreg
-        
+
         exe_path = get_exe_path()
         app_name = "FoolDesktopTool"
         prog_id = "FoolDesktopTool.Project"
-        
-        file_types_key = winreg.CreateKey(
-            winreg.HKEY_CLASSES_ROOT,
-            ".itexe"
-        )
+
+        file_types_key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, ".itexe")
         winreg.SetValue(file_types_key, None, winreg.REG_SZ, prog_id)
         winreg.CloseKey(file_types_key)
-        
-        prog_id_key = winreg.CreateKey(
-            winreg.HKEY_CLASSES_ROOT,
-            prog_id
-        )
+
+        prog_id_key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, prog_id)
         winreg.SetValue(prog_id_key, None, winreg.REG_SZ, "傻瓜桌面开发工具项目")
         winreg.CloseKey(prog_id_key)
-        
-        shell_key = winreg.CreateKey(
-            winreg.HKEY_CLASSES_ROOT,
-            f"{prog_id}\\shell"
-        )
+
+        shell_key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, f"{prog_id}\\shell")
         winreg.SetValue(shell_key, None, winreg.REG_SZ, "open")
         winreg.CloseKey(shell_key)
-        
-        open_key = winreg.CreateKey(
-            winreg.HKEY_CLASSES_ROOT,
-            f"{prog_id}\\shell\\open"
-        )
+
+        open_key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, f"{prog_id}\\shell\\open")
         winreg.CloseKey(open_key)
-        
-        command_key = winreg.CreateKey(
-            winreg.HKEY_CLASSES_ROOT,
-            f"{prog_id}\\shell\\open\\command"
-        )
+
+        command_key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, f"{prog_id}\\shell\\open\\command")
         winreg.SetValue(command_key, None, winreg.REG_SZ, f'{exe_path} "%1"')
         winreg.CloseKey(command_key)
-        
-        default_icon_key = winreg.CreateKey(
-            winreg.HKEY_CLASSES_ROOT,
-            f"{prog_id}\\DefaultIcon"
-        )
+
+        default_icon_key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, f"{prog_id}\\DefaultIcon")
         icon_path = exe_path.strip('"')
         winreg.SetValue(default_icon_key, None, winreg.REG_SZ, f'{icon_path},0')
         winreg.CloseKey(default_icon_key)
-        
+
         try:
-            app_key = winreg.CreateKey(
-                winreg.HKEY_CURRENT_USER,
-                f"Software\\Classes\\{prog_id}"
-            )
+            app_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"Software\\Classes\\{prog_id}")
             winreg.CloseKey(app_key)
         except Exception:
             pass
-        
-        return True, "文件关联注册成功！\n\n现在双击 .itexe 文件即可启动程序并加载项目。"
-    
+
+        return True, "文件关联注册成功！\n\n现在双击项目 .py 文件即可启动程序并加载。"
+
     except PermissionError:
         return False, "权限不足，请以管理员身份运行程序。"
     except Exception as e:
@@ -128,45 +89,36 @@ def register_file_association() -> tuple:
 
 
 def unregister_file_association() -> tuple:
-    """注销 .itexe 文件关联。
-    
-    Returns:
-        (success, message): 成功状态和消息
-    """
+    """注销项目文件关联。"""
     if not is_windows():
         return False, "文件关联仅支持 Windows 系统"
-    
+
     try:
         import winreg
-        
+
         prog_id = "FoolDesktopTool.Project"
-        
+
         def delete_key_recursive(key, sub_key):
-            """递归删除注册表键。"""
             try:
-                full_key = winreg.OpenKey(key, sub_key, 0, 
-                    winreg.KEY_ALL_ACCESS | winreg.KEY_WOW64_64KEY)
-                
+                full_key = winreg.OpenKey(key, sub_key, 0, winreg.KEY_ALL_ACCESS | winreg.KEY_WOW64_64KEY)
                 while True:
                     try:
                         child = winreg.EnumKey(full_key, 0)
                         delete_key_recursive(full_key, child)
                     except OSError:
                         break
-                
                 winreg.CloseKey(full_key)
-                parent_key = winreg.OpenKey(key, "", 0,
-                    winreg.KEY_ALL_ACCESS | winreg.KEY_WOW64_64KEY)
+                parent_key = winreg.OpenKey(key, "", 0, winreg.KEY_ALL_ACCESS | winreg.KEY_WOW64_64KEY)
                 winreg.DeleteKey(parent_key, sub_key.split('\\')[-1] if '\\' in sub_key else sub_key)
                 winreg.CloseKey(parent_key)
             except FileNotFoundError:
                 pass
-        
+
         delete_key_recursive(winreg.HKEY_CLASSES_ROOT, ".itexe")
         delete_key_recursive(winreg.HKEY_CLASSES_ROOT, prog_id)
-        
+
         return True, "文件关联已注销。"
-    
+
     except PermissionError:
         return False, "权限不足，请以管理员身份运行程序。"
     except Exception as e:
@@ -174,17 +126,10 @@ def unregister_file_association() -> tuple:
 
 
 def is_file_association_registered() -> bool:
-    """检查文件关联是否已注册。
-    
-    Returns:
-        bool: 是否已注册
-    """
     if not is_windows():
         return False
-    
     try:
         import winreg
-        
         key = winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, ".itexe")
         winreg.CloseKey(key)
         return True

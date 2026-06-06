@@ -136,7 +136,8 @@ class WindowModel(QObject):
     component_removed = Signal(str)
     
     def __init__(self, name: str = "新窗口", window_type: WindowType = WindowType.EVENT,
-                 width: int = 800, height: int = 600, window_id: str = ""):
+                 width: int = 800, height: int = 600, window_id: str = "",
+                 frameless: bool = False, window_color: str = ""):
         super().__init__()
         self._id = window_id or str(uuid.uuid4())[:8]
         self._name = name
@@ -146,6 +147,8 @@ class WindowModel(QObject):
         self._components: List[str] = []
         self._title = name
         self._trigger_button_id: Optional[str] = None
+        self._frameless = frameless
+        self._window_color = window_color
     
     @property
     def id(self) -> str:
@@ -214,9 +217,25 @@ class WindowModel(QObject):
     def trigger_button_id(self) -> Optional[str]:
         return self._trigger_button_id
     
-    @trigger_button_id.setter
-    def trigger_button_id(self, value: Optional[str]):
-        self._trigger_button_id = value
+    @property
+    def frameless(self) -> bool:
+        return self._frameless
+    
+    @frameless.setter
+    def frameless(self, value: bool):
+        if self._frameless != value:
+            self._frameless = value
+            self.data_changed.emit()
+    
+    @property
+    def window_color(self) -> str:
+        return self._window_color
+    
+    @window_color.setter
+    def window_color(self, value: str):
+        if self._window_color != value:
+            self._window_color = value
+            self.data_changed.emit()
     
     @property
     def components(self) -> List[str]:
@@ -235,7 +254,7 @@ class WindowModel(QObject):
             self.data_changed.emit()
     
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result = {
             'id': self._id,
             'name': self._name,
             'window_type': self._window_type.value,
@@ -245,6 +264,11 @@ class WindowModel(QObject):
             'components': self._components,
             'trigger_button_id': self._trigger_button_id,
         }
+        if self._frameless:
+            result['frameless'] = True
+        if self._window_color:
+            result['window_color'] = self._window_color
+        return result
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'WindowModel':
@@ -255,6 +279,8 @@ class WindowModel(QObject):
             width=data.get('width', 800),
             height=data.get('height', 600),
             window_id=data.get('id', ''),
+            frameless=data.get('frameless', False),
+            window_color=data.get('window_color', ''),
         )
         instance._title = data.get('title', instance._name)
         instance._components = data.get('components', [])

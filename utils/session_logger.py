@@ -7,6 +7,7 @@
 from datetime import datetime
 from typing import Optional, List
 import os
+import sys
 
 
 class SessionLogger:
@@ -69,6 +70,8 @@ class SessionLogger:
                 f.write(log_entry + '\n')
         except Exception:
             pass
+        
+        print(f"[{timestamp}] [{level}] {message}")
     
     def info(self, message: str):
         """记录INFO级别日志。"""
