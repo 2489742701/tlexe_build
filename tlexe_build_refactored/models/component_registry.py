@@ -217,6 +217,20 @@ class ComponentRegistry:
         """
         meta = cls._components.get(type_name)
         return meta.editor_class if meta else None
+        
+    @classmethod
+    def update_editor(cls, type_name: str, editor_class: Type):
+        """更新已注册组件的属性编辑器类。"""
+        meta = cls._components.get(type_name)
+        if meta:
+            meta.editor_class = editor_class
+            
+    @classmethod
+    def update_renderer(cls, type_name: str, renderer_class: Type):
+        """更新已注册组件的渲染器类。"""
+        meta = cls._components.get(type_name)
+        if meta:
+            meta.renderer_class = renderer_class
     
     @classmethod
     def create_model(cls, type_name: str, **kwargs) -> Any:

@@ -832,7 +832,9 @@ class PropertyPanel(QWidget):
                 self._current_editor.type_switch_requested.connect(self._on_type_switch_requested)
             self._type_layout.addWidget(self._current_editor)
         else:
-            self._add_alternating_properties(model)
+            fallback_label = QLabel(f"暂无针对 {model.type} 类型的专属属性编辑器")
+            fallback_label.setStyleSheet("color: #999; font-style: italic; padding: 10px;")
+            self._type_layout.addWidget(fallback_label)
     
     def _on_type_switch_requested(self, comp_id: str, new_type: str):
         """处理交替变换类型切换请求。"""
