@@ -560,17 +560,17 @@ class GroupNodeModel(ComponentModel):
         self._style.border_radius = 5
 
     def add_child(self, child_id: str) -> None:
-        if child_id not in self._children:
-            self._children.append(child_id)
+        if child_id not in self.children:
+            self.children.append(child_id)
             self.data_changed.emit()
 
     def remove_child(self, child_id: str) -> None:
-        if child_id in self._children:
-            self._children.remove(child_id)
+        if child_id in self.children:
+            self.children.remove(child_id)
             self.data_changed.emit()
 
     def has_child(self, child_id: str) -> bool:
-        return child_id in self._children
+        return child_id in self.children
 
 @register_component('confirm_button')
 class ConfirmButtonModel(ComponentModel):

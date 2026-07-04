@@ -60,7 +60,6 @@ def register_all_components():
     from renderers.hidden_button_renderer import HiddenButtonRenderer
     from renderers.image_button_renderer import ImageButtonRenderer
     from renderers.image_carousel_renderer import ImageCarouselRenderer
-    from renderers.lottery_renderer import LotteryRenderer
     from renderers.alternating_renderer import AlternatingRenderer
     from renderers.image_renderer import ImageRenderer
     from renderers.video_renderer import VideoRenderer
@@ -193,7 +192,6 @@ def _do_register(CR, models, renderers, icons, default_props, factory_funcs):
             type_name=type_name,
             model_class=models[model_key],
             renderer_class=renderers.get(renderer_key) if renderer_key else None,
-            factory_func=factory_funcs.get(type_name),
             display_name=display_name,
             icon=icons.get(type_name, ''),
             category=category,
