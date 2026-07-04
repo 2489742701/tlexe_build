@@ -192,6 +192,7 @@ def _do_register(CR, models, renderers, icons, default_props, factory_funcs):
             type_name=type_name,
             model_class=models[model_key],
             renderer_class=renderers.get(renderer_key) if renderer_key else None,
+            factory_func=factory_funcs.get(type_name),
             display_name=display_name,
             icon=icons.get(type_name, ''),
             category=category,

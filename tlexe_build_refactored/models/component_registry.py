@@ -47,6 +47,7 @@ class ComponentMeta:
     model_class: Type
     renderer_class: Optional[Type] = None
     editor_class: Optional[Type] = None
+    factory_func: Optional[Any] = None
     display_name: str = ""
     icon: str = ""
     category: str = "basic"
@@ -96,6 +97,7 @@ class ComponentRegistry:
         model_class: Type,
         renderer_class: Optional[Type] = None,
         editor_class: Optional[Type] = None,
+        factory_func: Optional[Any] = None,
         display_name: str = "",
         icon: str = "",
         category: str = "basic",
@@ -109,6 +111,7 @@ class ComponentRegistry:
             model_class: 组件模型类
             renderer_class: 渲染器类（可选）
             editor_class: 属性编辑器类（可选）
+            factory_func: 组件工厂函数（可选）
             display_name: 显示名称
             icon: 图标
             category: 分类
@@ -133,6 +136,7 @@ class ComponentRegistry:
             model_class=model_class,
             renderer_class=renderer_class,
             editor_class=editor_class,
+            factory_func=factory_func,
             display_name=display_name or type_name.capitalize(),
             icon=icon,
             category=category,
@@ -403,6 +407,7 @@ def register_component(
     type_name: str,
     renderer_class: Optional[Type] = None,
     editor_class: Optional[Type] = None,
+    factory_func: Optional[Any] = None,
     display_name: str = "",
     icon: str = "",
     category: str = "basic",
@@ -417,6 +422,7 @@ def register_component(
         type_name: 组件类型标识符
         renderer_class: 渲染器类（可选）
         editor_class: 属性编辑器类（可选）
+        factory_func: 组件工厂函数（可选）
         display_name: 显示名称
         icon: 图标
         category: 分类
@@ -429,6 +435,7 @@ def register_component(
             model_class=model_class,
             renderer_class=renderer_class,
             editor_class=editor_class,
+            factory_func=factory_func,
             display_name=display_name,
             icon=icon,
             category=category,
