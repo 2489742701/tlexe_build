@@ -27,7 +27,7 @@ class ImageButtonRenderer(ComponentRenderer):
             rect: 绘制区域
             is_selected: 是否被选中
         """
-        style = self.get_style(model)
+        style = self._get_style(model)
         if not style:
             return
         
