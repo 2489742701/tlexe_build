@@ -393,6 +393,12 @@ class ComponentEditorAutoTest(QObject):
             # Simulate clicking the component in the tree/canvas
             self._app_manager._controller._on_component_selected(comp.id)
             # Ensure the property panel handles it without exceptions
+            
+            # Now simulate property edit
+            if comp.type == 'window':
+                self._app_manager._controller._on_property_changed("", "width", comp.width, comp.width + 1)
+            else:
+                self._app_manager._controller._on_property_changed(comp.id, "x", comp.x, comp.x + 1)
         except Exception as e:
             err_msg = f"组件 {comp.type} ({comp.id}) 测试失败: {str(e)}\n{traceback.format_exc()}"
             self._app_manager._session_logger.log("ERROR", err_msg)

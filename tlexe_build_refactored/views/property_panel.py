@@ -648,6 +648,14 @@ class PropertyPanel(QWidget):
             self._window_frameless_check.setChecked(window_model.frameless)
             self._update_color_btn(self._window_color_btn, window_model.window_color or "#ffffff")
             
+            self._width_spin.setValue(window_model.width)
+            self._height_spin.setValue(window_model.height)
+            self._x_spin.setValue(0)
+            self._y_spin.setValue(0)
+            
+            self._x_spin.setEnabled(False)
+            self._y_spin.setEnabled(False)
+            
             self.setEnabled(True)
         finally:
             self._updating = False
@@ -696,6 +704,9 @@ class PropertyPanel(QWidget):
             self._type_label.setText(model.type)
             self._name_edit.setText(model.name)
             self._text_edit.setPlainText(model.text or "")
+            
+            self._x_spin.setEnabled(True)
+            self._y_spin.setEnabled(True)
             
             self._x_spin.setValue(model.x)
             self._y_spin.setValue(model.y)
@@ -757,7 +768,16 @@ class PropertyPanel(QWidget):
         btn.setProperty("color", color)
     
     def _on_property_changed(self, property_name: str, new_value):
-        if self._updating or self._current_model is None:
+        if self._updating:
+            return
+            
+        if self._current_model is None:
+            if self._current_window is not None and property_name in ("width", "height"):
+                old_value = getattr(self._current_window, property_name, None)
+                if old_value == new_value:
+                    return
+                setattr(self._current_window, property_name, new_value)
+                self.property_changed.emit("", property_name, old_value, new_value)
             return
         
         if property_name.startswith("style."):

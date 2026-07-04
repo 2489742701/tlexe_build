@@ -355,6 +355,12 @@ class ComponentGraphicsItem(QGraphicsObject):
                         start_x, start_y = self._selected_items_start_pos[item.component_id]
                         new_x = start_x + delta.x()
                         new_y = start_y + delta.y()
+                        
+                        if app_settings.snap_to_grid:
+                            grid_size = app_settings.grid_size
+                            new_x = round(new_x / grid_size) * grid_size
+                            new_y = round(new_y / grid_size) * grid_size
+                            
                         item.setPos(QPointF(new_x, new_y))
             
             event.accept()
@@ -514,6 +520,11 @@ class ComponentGraphicsItem(QGraphicsObject):
         dx = delta.x()
         dy = delta.y()
         
+        if app_settings.snap_to_grid:
+            grid_size = app_settings.grid_size
+            dx = round(dx / grid_size) * grid_size
+            dy = round(dy / grid_size) * grid_size
+            
         self._model.blockSignals(True)
         
         try:
@@ -553,15 +564,7 @@ class ComponentGraphicsItem(QGraphicsObject):
     
     def itemChange(self, change, value):
         if change == QGraphicsObject.GraphicsItemChange.ItemPositionChange and self.scene():
-            new_pos = value
-            
-            if app_settings.snap_to_grid:
-                grid_size = app_settings.grid_size
-                x = round(new_pos.x() / grid_size) * grid_size
-                y = round(new_pos.y() / grid_size) * grid_size
-                new_pos = QPointF(x, y)
-            
-            return new_pos
+            return value
         
         if change == QGraphicsObject.GraphicsItemChange.ItemPositionHasChanged and self.scene():
             self.scene().update()

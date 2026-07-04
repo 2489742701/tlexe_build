@@ -25,9 +25,9 @@ class AlternatingRenderer(ComponentRenderer):
         placeholder = "文字交替变换" if display_mode == 'text' else "图片交替变换"
 
         if display_mode == 'text':
-            self._render_text(painter, items, item_labels, current_index, rect, placeholder)
+            self._render_text(painter, model, items, item_labels, current_index, rect, placeholder)
         else:
-            self._render_image(painter, items, item_labels, current_index, rect, placeholder)
+            self._render_image(painter, model, items, item_labels, current_index, rect, placeholder)
 
         # 只需要一个边框描边
         painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
@@ -39,18 +39,26 @@ class AlternatingRenderer(ComponentRenderer):
             painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
             painter.drawRoundedRect(rect, 5, 5)
 
-    def _render_text(self, painter, items, item_labels, current_index, rect, placeholder):
+    def _render_text(self, painter, model, items, item_labels, current_index, rect, placeholder):
         if items and 0 <= current_index < len(items):
             text = item_labels[current_index] if current_index < len(item_labels) else str(items[current_index])
-            font = QFont("Microsoft YaHei", 28, QFont.Weight.Bold)
+            
+            style = self._get_style(model)
+            font_family = style.font_family if style and hasattr(style, 'font_family') else "Microsoft YaHei"
+            font_size = style.font_size if style and hasattr(style, 'font_size') else 28
+            font_bold = style.font_bold if style and hasattr(style, 'font_bold') else True
+            text_color = style.text_color if style and hasattr(style, 'text_color') else "#333333"
+            
+            font = QFont(font_family, font_size, QFont.Weight.Bold if font_bold else QFont.Weight.Normal)
             painter.setFont(font)
-            painter.setPen(QPen(QColor("#333333")))
+            painter.setPen(QPen(QColor(text_color)))
+            
             text_rect = QRectF(rect.x() + 10, rect.y() + 10, rect.width() - 20, rect.height() - 30)
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)
         else:
             self._draw_placeholder(painter, rect, placeholder)
 
-    def _render_image(self, painter, items, item_labels, current_index, rect, placeholder):
+    def _render_image(self, painter, model, items, item_labels, current_index, rect, placeholder):
         if items and 0 <= current_index < len(items):
             pixmap = QPixmap(items[current_index])
             if not pixmap.isNull():

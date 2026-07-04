@@ -88,19 +88,32 @@ def main():
         cmd_interaction = [sys.executable, main_py, "--auto-test-editor", sample]
         success_int, out_int, code_int, timeout_int = run_test(cmd_interaction, timeout=10)
         
+        # Test 4: Runtime Lifecycle
+        if sample.endswith(".itexe") or sample.endswith(".json"):
+            driver_script = os.path.join(project_root, "scripts", "runtime_test_driver.py")
+            cmd_lifecycle = [sys.executable, driver_script, sample]
+            # 5 seconds test, give it 7 seconds before force killing
+            success_life, out_life, code_life, timeout_life = run_test(cmd_lifecycle, timeout=7)
+        else:
+            success_life, out_life, code_life, timeout_life = True, "Skipped for .py file", 0, False
+        
         results.append({
             "name": sample_name,
             "editor": {"success": success_ed, "code": code_ed, "timeout": timeout_ed, "output": out_ed},
             "runtime": {"success": success_rt, "code": code_rt, "timeout": timeout_rt, "output": out_rt},
-            "interaction": {"success": success_int, "code": code_int, "timeout": timeout_int, "output": out_int}
+            "interaction": {"success": success_int, "code": code_int, "timeout": timeout_int, "output": out_int},
+            "lifecycle": {"success": success_life, "code": code_life, "timeout": timeout_life, "output": out_life}
         })
         
         status_ed = "PASS" if success_ed else "FAIL"
         status_rt = "PASS" if success_rt else "FAIL"
         status_int = "PASS" if success_int else "FAIL"
+        status_life = "PASS" if success_life else "FAIL"
+        
         print(f"  -> Editor:       {status_ed} (Timeout: {timeout_ed}, ExitCode: {code_ed})")
         print(f"  -> Runtime:      {status_rt} (Timeout: {timeout_rt}, ExitCode: {code_rt})")
         print(f"  -> Interaction:  {status_int} (Timeout: {timeout_int}, ExitCode: {code_int})")
+        print(f"  -> Lifecycle:    {status_life} (Timeout: {timeout_life}, ExitCode: {code_life})")
         print()
         
     print("==== Summary ====")
@@ -109,8 +122,9 @@ def main():
         ed_status = "PASS" if res['editor']['success'] else "FAIL"
         rt_status = "PASS" if res['runtime']['success'] else "FAIL"
         int_status = "PASS" if res['interaction']['success'] else "FAIL"
-        print(f"{res['name']:<30} Editor: {ed_status:<5} Runtime: {rt_status:<5} Interaction: {int_status:<5}")
-        if not res['editor']['success'] or not res['runtime']['success'] or not res['interaction']['success']:
+        life_status = "PASS" if res['lifecycle']['success'] else "FAIL"
+        print(f"{res['name']:<30} Editor: {ed_status:<5} Runtime: {rt_status:<5} Interaction: {int_status:<5} Lifecycle: {life_status:<5}")
+        if not (res['editor']['success'] and res['runtime']['success'] and res['interaction']['success'] and res['lifecycle']['success']):
             all_passed = False
             
     if not all_passed:
@@ -118,13 +132,16 @@ def main():
         for res in results:
             if not res['editor']['success']:
                 print(f"\n--- {res['name']} (Editor FAIL) ---")
-                print(res['editor']['output'])
+                print(res['editor']['output'].replace('\ufffd', '?'))
             if not res['runtime']['success']:
                 print(f"\n--- {res['name']} (Runtime FAIL) ---")
-                print(res['runtime']['output'])
+                print(res['runtime']['output'].replace('\ufffd', '?'))
             if not res['interaction']['success']:
                 print(f"\n--- {res['name']} (Interaction FAIL) ---")
-                print(res['interaction']['output'])
+                print(res['interaction']['output'].replace('\ufffd', '?'))
+            if not res['lifecycle']['success']:
+                print(f"\n--- {res['name']} (Lifecycle FAIL) ---")
+                print(res['lifecycle']['output'].replace('\ufffd', '?'))
         sys.exit(1)
     else:
         print("\nAll tests passed successfully!")

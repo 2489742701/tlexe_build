@@ -715,8 +715,9 @@ class ComponentFactory:
             s = getattr(m, 'style', None)
             if s is None:
                 return "font-size: 28pt; font-weight: bold; color: #333333;"
-            bold = "bold" if s.font_bold else "normal"
-            return f"font-size: {s.font_size}pt; font-weight: {bold}; color: {s.text_color};"
+            bold = "bold" if getattr(s, 'font_bold', False) else "normal"
+            font_family = getattr(s, 'font_family', 'Microsoft YaHei')
+            return f"font-family: '{font_family}'; font-size: {s.font_size}pt; font-weight: {bold}; color: {s.text_color};"
 
         def _update_display():
             idx = getattr(model, 'current_index', 0)
