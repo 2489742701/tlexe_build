@@ -1,0 +1,946 @@
+﻿eanup_recent_projects.py|4|import json
+eanup_recent_projects.py|5|import os
+eanup_recent_projects.py|6|from datetime import datetime
+ample_integration.py|8|import sys
+ample_integration.py|9|import logging
+ample_integration.py|10|from typing import Optional
+ample_integration.py|12|from PySide6.QtCore import Qt, QTimer
+ample_integration.py|13|from PySide6.QtWidgets import (
+ample_integration.py|28|from fixes.view_manager import ViewManager
+ample_integration.py|29|from fixes.ui_fixes import (
+ample_integration.py|281|import uuid
+ample_titlebar.py|4|import sys
+ample_titlebar.py|5|import logging
+ample_titlebar.py|7|from PySide6.QtCore import Qt
+ample_titlebar.py|8|from PySide6.QtWidgets import (
+ample_titlebar.py|15|from ui.custom_titlebar import (
+nction_analyzer.py|4|import ast
+nction_analyzer.py|5|import os
+nction_analyzer.py|6|from typing import Dict, List, Set, Tuple, Optional
+nction_analyzer.py|7|from collections import defaultdict
+nction_analyzer.py|8|import json
+nction_analyzer.py|244|import sys
+nerate_samples.py|6|import json
+nerate_samples.py|7|import os
+nerate_samples.py|8|from typing import Dict, Any, List
+nerate_samples.py|609|from models.registry_init import register_all_components
+nerate_samples.py|610|from models.tech_components import TechComponentManager
+nerate_samples.py|611|from models.components import ContainerModel, create_component
+nerate_samples.py|707|from models.registry_init import register_all_components
+nerate_samples.py|708|from models.tech_components import TechComponentManager
+nerate_samples.py|709|from models.components import ContainerModel, LabelModel, ButtonModel, create_component
+nerate_samples.py|710|from models.base import ActionConfig
+nerate_samples.py|794|from models.base import StyleConfig
+ex_builder.py|24|import json
+ex_builder.py|25|import uuid
+ex_builder.py|26|from typing import Dict, Any, List, Optional
+ex_builder.py|27|from dataclasses import dataclass, field
+in.py|29|import sys
+in.py|30|import os
+in.py|31|import argparse
+in.py|32|import traceback
+in.py|33|from datetime import datetime
+in.py|34|from PySide6.QtWidgets import QApplication, QStackedWidget, QMessageBox
+in.py|35|from PySide6.QtCore import Qt
+in.py|37|from models import ProjectModel
+in.py|38|from views import MainWindow
+in.py|39|from views.welcome_page import WelcomePage
+in.py|40|from views.register_dialog import RegisterDialog
+in.py|41|from controllers import ProjectController
+in.py|42|from utils.settings import app_settings
+in.py|43|from utils.session_logger import SessionLogger
+in.py|44|from utils.temp_file_manager import TempFileManager
+in.py|45|from services import AppInitializer, AutoSaveService
+in.py|264|from PySide6.QtCore import QTimer
+in.py|265|from tests.auto_test import BlueprintAutoTest
+in.py|482|import json
+in.py|483|from runtime.runner import Runner
+in.py|488|from utils.py_project_format import python_code_to_dict
+mple_app.py|6|import sys
+mple_app.py|7|import uuid
+mple_app.py|8|import json
+mple_app.py|9|from dataclasses import dataclass, field
+mple_app.py|10|from typing import Dict, Any, List, Optional
+mple_app.py|12|from PySide6.QtWidgets import (
+mple_app.py|20|from PySide6.QtCore import Qt, QRectF, QPointF, Signal
+mple_app.py|21|from PySide6.QtGui import QAction, QBrush, QColor, QPen, QFont, QPainter
+st_import_issue.py|1|import sys
+st_import_issue.py|2|import os
+st_import_issue.py|12|from models import ProjectModel
+st_import_issue.py|17|from views import MainWindow
+st_import_issue.py|22|from controllers import ProjectController
+st_import_issue.py|30|import traceback
+ntrollers\canvas_controller.py|11|from typing import Optional, Dict, List, Tuple
+ntrollers\canvas_controller.py|12|from PySide6.QtCore import Qt, QPointF, QRectF, Signal
+ntrollers\canvas_controller.py|13|from PySide6.QtWidgets import QGraphicsItem
+ntrollers\canvas_controller.py|15|from models import ComponentModel, ProjectModel
+ntrollers\canvas_controller.py|16|from utils.undo_manager import UndoManager
+ntrollers\canvas_controller_v2.py|13|from typing import Optional, Dict, List, Protocol
+ntrollers\canvas_controller_v2.py|14|from dataclasses import dataclass, field
+ntrollers\canvas_controller_v2.py|15|from PySide6.QtCore import Qt, QPointF, QRectF, Signal
+ntrollers\canvas_controller_v2.py|16|from PySide6.QtWidgets import QGraphicsItem
+ntrollers\canvas_controller_v2.py|18|from models import ComponentModel, ProjectModel
+ntrollers\canvas_controller_v2.py|19|from utils.undo_manager import UndoManager
+ntrollers\canvas_controller_v2.py|162|from services.layout import LayoutEngine
+ntrollers\canvas_controller_v2.py|255|from services.layout import OverlapDetector, OverlapVisualizer
+ntrollers\canvas_controller_v2.py|315|from services.layout import OverlapVisualizer
+ntrollers\canvas_controller_v2.py|320|from services.layout import OverlapDetector, OverlapAvoider
+ntrollers\canvas_controller_v2.py|321|from models.components import ContainerModel
+ntrollers\project_controller.py|14|import json
+ntrollers\project_controller.py|15|import os
+ntrollers\project_controller.py|16|from typing import Dict, Any, Optional
+ntrollers\project_controller.py|17|from PySide6.QtWidgets import QFileDialog, QMessageBox
+ntrollers\project_controller.py|19|from models import ProjectModel, ComponentModel, create_component
+ntrollers\project_controller.py|20|from views import MainWindow
+ntrollers\project_controller.py|21|from utils.undo_manager import UndoManager
+ntrollers\project_controller.py|22|from utils.settings import app_settings
+ntrollers\project_controller.py|24|from presenters import CanvasPresenter
+ntrollers\project_controller.py|47|from dev_mode.debug_logger import DebugLogger
+ntrollers\project_controller.py|246|from runtime.runner import Runner
+ntrollers\project_controller.py|274|from runtime.runner import Runner
+ntrollers\project_controller.py|297|from utils.converter import ProjectConverter
+ntrollers\project_controller.py|318|from utils.converter import ProjectConverter
+ntrollers\project_controller.py|346|from utils.settings import app_settings
+ntrollers\project_controller.py|347|from models import TechComponentManager
+ntrollers\project_controller.py|394|from models import TechComponentManager
+ntrollers\project_controller.py|441|from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QCheckBox, QPushButton, QHBoxLayout
+ntrollers\project_controller.py|442|from utils.settings import app_settings
+ntrollers\project_controller.py|794|from PySide6.QtWidgets import QMessageBox
+ntrollers\project_controller.py|818|from PySide6.QtWidgets import (
+ntrollers\project_controller.py|950|from models.base import ActionConfig
+ntrollers\__init__.py|8|from .project_controller import ProjectController
+ntrollers\__init__.py|9|from .canvas_controller import CanvasController
+ntrollers\__init__.py|10|from .canvas_controller_v2 import CanvasControllerV2
+re\signal_event_system.py|6|import uuid
+re\signal_event_system.py|7|import json
+re\signal_event_system.py|8|import weakref
+re\signal_event_system.py|9|import logging
+re\signal_event_system.py|10|from abc import ABC, abstractmethod
+re\signal_event_system.py|11|from typing import Dict, Any, List, Optional, Callable, Set, Type, Union
+re\signal_event_system.py|12|from dataclasses import dataclass, field, asdict
+re\signal_event_system.py|13|from datetime import datetime
+re\signal_event_system.py|14|from enum import Enum, auto
+re\signal_event_system.py|16|from PySide6.QtCore import QObject, Signal as QtSignal, Slot
+re\__init__.py|4|from .signal_event_system import (
+v_mode\debug_logger.py|6|import sys
+v_mode\debug_logger.py|7|import datetime
+v_mode\debug_logger.py|8|from typing import Optional, List, Dict, Any
+v_mode\debug_logger.py|9|from enum import Enum
+v_mode\debug_logger.py|10|from PySide6.QtCore import QObject, Signal
+v_mode\dev_console.py|6|from typing import Optional
+v_mode\dev_console.py|7|from PySide6.QtWidgets import (
+v_mode\dev_console.py|12|from PySide6.QtCore import Qt, Signal
+v_mode\dev_console.py|13|from PySide6.QtGui import QFont, QColor, QTextCharFormat
+v_mode\dev_console.py|15|from .debug_logger import DebugLogger, LogLevel
+v_mode\dev_console.py|16|from .test_runner import TestCase, TestRunner
+v_mode\dev_manager.py|6|from typing import Optional, Dict, Any, List
+v_mode\dev_manager.py|7|from PySide6.QtCore import QObject, Signal
+v_mode\dev_manager.py|8|from enum import Enum
+v_mode\dev_manager.py|197|import datetime
+v_mode\test_runner.py|6|import sys
+v_mode\test_runner.py|7|import datetime
+v_mode\test_runner.py|8|from typing import Optional, Dict, Any, List, Callable
+v_mode\test_runner.py|9|from PySide6.QtCore import QObject, Signal
+v_mode\test_runner.py|317|from models import ButtonModel
+v_mode\test_runner.py|325|from models import LabelModel
+v_mode\test_runner.py|332|from models import InputModel
+v_mode\test_runner.py|340|from models import ContainerModel
+v_mode\test_runner.py|347|from models import ProjectModel
+v_mode\test_runner.py|355|from models import ProjectModel, ButtonModel
+v_mode\test_runner.py|364|from models import ProjectModel, ButtonModel
+v_mode\test_runner.py|377|from utils.undo_manager import UndoManager
+v_mode\test_runner.py|394|from models import ProjectModel, ButtonModel, LabelModel
+v_mode\__init__.py|6|from .dev_manager import DevModeManager, get_dev_manager
+v_mode\__init__.py|7|from .debug_logger import DebugLogger, LogLevel, get_logger
+v_mode\__init__.py|8|from .test_runner import TestCase, TestRunner
+v_mode\__init__.py|9|from .dev_console import DevConsole
+entbus\event_bus.py|12|from eventbus.event_bus import event_bus, ComponentMovedEvent
+entbus\event_bus.py|23|from PySide6.QtCore import QObject, Signal
+entbus\event_bus.py|24|from typing import Any, Callable, Dict, List, Optional
+entbus\__init__.py|18|from .event_bus import (
+xes\ui_fixes.py|6|import logging
+xes\ui_fixes.py|7|from typing import Optional, Dict, Any, List
+xes\ui_fixes.py|8|from PySide6.QtCore import QObject, Signal, QTimer, Qt
+xes\ui_fixes.py|9|from PySide6.QtWidgets import (
+xes\ui_fixes.py|232|import uuid
+xes\view_manager.py|4|import logging
+xes\view_manager.py|5|from typing import Dict, Optional, Callable, Any
+xes\view_manager.py|6|from PySide6.QtCore import QObject, Signal
+xes\view_manager.py|7|from PySide6.QtWidgets import QStackedWidget, QWidget
+dels\base.py|6|import uuid
+dels\base.py|7|import json
+dels\base.py|8|from typing import Dict, Any, List, Optional
+dels\base.py|9|from dataclasses import dataclass, field
+dels\base.py|10|from PySide6.QtCore import QObject, Signal
+dels\base.py|11|from enum import Enum
+dels\base.py|371|import inspect
+dels\base.py|438|from .window import WindowModel, WindowType
+dels\base.py|592|from .window import WindowModel, WindowType
+dels\base.py|593|from .components import ButtonModel, ProgressBarModel
+dels\base.py|641|from .window import WindowModel
+dels\base.py|664|from .component_registry import ComponentRegistry
+dels\base.py|681|from utils.py_project_format import dict_to_python_code, is_itexe_project_file
+dels\base.py|699|from utils.py_project_format import python_code_to_dict
+dels\base.py|707|import traceback
+dels\communication_system.py|31|from typing import Dict, Any, List, Optional, Callable, Set
+dels\communication_system.py|32|from enum import Enum
+dels\communication_system.py|33|from dataclasses import dataclass, field
+dels\communication_system.py|34|from PySide6.QtCore import QObject, Signal
+dels\communication_system.py|292|import uuid
+dels\communication_system.py|410|from PySide6.QtWidgets import QMessageBox
+dels\communication_system.py|421|from .variable_system import get_variable_manager
+dels\communication_system.py|447|from .variable_system import get_variable_manager, VariableType
+dels\communication_system.py|465|from .variable_system import get_variable_manager
+dels\communication_system.py|487|from .variable_system import get_variable_manager
+dels\communication_system.py|500|from .variable_system import get_variable_manager
+dels\communication_system.py|513|from .variable_system import get_variable_manager
+dels\communication_system.py|525|from .variable_system import get_variable_manager
+dels\components.py|6|from typing import Dict, Any, Optional, Type, List
+dels\components.py|7|from PySide6.QtCore import Signal
+dels\components.py|8|from .base import ComponentModel
+dels\components.py|193|import random
+dels\components.py|204|from PySide6.QtCore import QTimer, QElapsedTimer, QEasingCurve
+dels\components.py|1268|import random
+dels\components.py|1282|import random
+dels\components.py|1283|from PySide6.QtCore import QTimer, QElapsedTimer
+dels\components.py|1307|from PySide6.QtCore import QEasingCurve
+dels\components.py|1396|import logging
+dels\components.py|1400|import logging
+dels\components.py|1455|import logging
+dels\components.py|1473|import random
+dels\components.py|1474|from PySide6.QtCore import QTimer, QElapsedTimer
+dels\components.py|1477|import logging
+dels\components.py|1503|from PySide6.QtCore import QEasingCurve
+dels\components.py|1634|import random
+dels\components.py|1635|from PySide6.QtCore import QTimer, QElapsedTimer
+dels\components.py|1659|from PySide6.QtCore import QEasingCurve
+dels\components.py|1994|from models.component_registry import ComponentRegistry
+dels\component_registry.py|20|from typing import Dict, Type, Optional, Callable, Any, List
+dels\component_registry.py|21|from dataclasses import dataclass, field
+dels\component_registry.py|22|import logging
+dels\component_registry.py|23|import inspect
+dels\component_registry.py|24|import re
+dels\component_registry.py|108|from datetime import datetime
+dels\component_registry.py|396|import importlib
+dels\model_helpers.py|7|from typing import Optional, Callable, Any, TypeVar, Generic
+dels\registry_init.py|8|import logging
+dels\registry_init.py|27|from models.component_registry import ComponentRegistry
+dels\registry_init.py|28|from models.components import (
+dels\registry_init.py|36|from renderers.button_renderer import ButtonRenderer
+dels\registry_init.py|37|from renderers.label_renderer import LabelRenderer
+dels\registry_init.py|38|from renderers.input_renderer import InputRenderer
+dels\registry_init.py|39|from renderers.container_renderer import ContainerRenderer
+dels\registry_init.py|40|from renderers.checkbox_renderer import CheckBoxRenderer
+dels\registry_init.py|41|from renderers.combobox_renderer import ComboBoxRenderer
+dels\registry_init.py|42|from renderers.progressbar_renderer import ProgressBarRenderer
+dels\registry_init.py|43|from renderers.hidden_button_renderer import HiddenButtonRenderer
+dels\registry_init.py|44|from renderers.image_button_renderer import ImageButtonRenderer
+dels\registry_init.py|45|from renderers.image_carousel_renderer import ImageCarouselRenderer
+dels\registry_init.py|46|from renderers.lottery_renderer import LotteryRenderer
+dels\registry_init.py|47|from renderers.alternating_renderer import AlternatingRenderer
+dels\registry_init.py|48|from renderers.image_renderer import ImageRenderer
+dels\registry_init.py|49|from renderers.video_renderer import VideoRenderer
+dels\registry_init.py|245|from views.property_editors.registry import PropertyEditorRegistry
+dels\signals.py|10|from models.signals import global_signals
+dels\signals.py|18|from models.signals import global_signals
+dels\signals.py|35|from PySide6.QtCore import QObject, Signal
+dels\signals.py|36|from typing import Optional
+dels\signals.py|167|from models.signals import global_signals
+dels\tech_components.py|7|from models.tech_components import TechComponentManager
+dels\tech_components.py|17|from typing import Dict, List, Any, Optional
+dels\tech_components.py|18|from dataclasses import dataclass
+dels\tech_components.py|19|from models import ComponentModel, create_component
+dels\tech_components.py|440|from models.base import StyleConfig
+dels\tech_components.py|445|from models.base import ActionConfig
+dels\variable_system.py|30|from typing import Dict, Any, List, Optional, Callable
+dels\variable_system.py|31|from enum import Enum
+dels\variable_system.py|32|from dataclasses import dataclass, field
+dels\variable_system.py|33|from PySide6.QtCore import QObject, Signal
+dels\window.py|3|import uuid
+dels\window.py|4|from typing import Dict, Any, List, Optional
+dels\window.py|5|from dataclasses import dataclass, field
+dels\window.py|6|from enum import Enum
+dels\window.py|7|from PySide6.QtCore import QObject, Signal
+dels\__init__.py|3|from .base import ComponentModel, ProjectModel, ActionConfig, StyleConfig
+dels\__init__.py|4|from .components import (
+dels\__init__.py|12|from .window import WindowModel, WindowType, ActionType, ActionDefinition, DEFAULT_ACTIONS
+dels\__init__.py|13|from .variable_system import (
+dels\__init__.py|17|from .communication_system import (
+dels\__init__.py|22|from .component_registry import (
+dels\__init__.py|29|from .registry_init import register_all_components
+dels\__init__.py|30|from .model_helpers import (
+dels\__init__.py|37|from .tech_components import (
+ckaging\build_project.py|9|import os
+ckaging\build_project.py|10|import sys
+ckaging\build_project.py|11|import subprocess
+ckaging\build_project.py|12|import shutil
+ckaging\build_project.py|13|import tempfile
+ckaging\build_project.py|114|import sys
+ckaging\build_project.py|115|import os
+ckaging\build_project.py|120|from PySide6.QtWidgets import QApplication
+ckaging\build_project.py|121|from runtime.runner import Runner
+ckaging\build_project.py|122|from utils.py_project_format import python_code_to_dict
+ckaging\build_project.py|149|import argparse
+ckaging\demo_entry.py|2|import sys
+ckaging\demo_entry.py|3|import os
+ckaging\demo_entry.py|8|from PySide6.QtWidgets import QApplication
+ckaging\demo_entry.py|9|from runtime.runner import Runner
+ckaging\packaging_service.py|4|import os
+ckaging\packaging_service.py|5|import sys
+ckaging\packaging_service.py|6|import subprocess
+ckaging\packaging_service.py|7|from PySide6.QtCore import QObject, Signal, QThread
+ckaging\setup_env.py|6|import os
+ckaging\setup_env.py|7|import sys
+ckaging\setup_env.py|8|import subprocess
+ckaging\setup_env.py|9|import urllib.request
+ckaging\setup_env.py|10|import zipfile
+ckaging\setup_env.py|11|import shutil
+ckaging\test_minimal_entry.py|1|import sys
+ckaging\test_minimal_entry.py|2|import os
+ckaging\test_minimal_entry.py|7|from PySide6.QtWidgets import QApplication, QLabel, QMainWindow
+ckaging\__init__.py|3|from .packaging_service import PackagingService
+esenters\canvas_presenter.py|10|from presenters import CanvasPresenter
+esenters\canvas_presenter.py|19|from PySide6.QtCore import QObject, QPointF
+esenters\canvas_presenter.py|20|from typing import Dict, Any, Optional, TYPE_CHECKING
+esenters\canvas_presenter.py|23|from models import ProjectModel, ComponentModel
+esenters\canvas_presenter.py|24|from views.canvas import DesignerView
+esenters\canvas_presenter.py|83|from eventbus import event_bus, ComponentMovedEvent, ComponentResizedEvent
+esenters\canvas_presenter.py|103|from models.components import ContainerModel
+esenters\canvas_presenter.py|108|from services.layout import LayoutEngine
+esenters\canvas_presenter.py|145|from eventbus import event_bus
+esenters\canvas_presenter.py|156|from eventbus import event_bus
+esenters\canvas_presenter.py|162|from eventbus import event_bus
+esenters\canvas_presenter.py|243|from eventbus import event_bus
+esenters\canvas_presenter.py|249|from eventbus import event_bus
+esenters\__init__.py|7|from .canvas_presenter import CanvasPresenter
+nderers\alternating_renderer.py|4|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QPixmap, QFont
+nderers\alternating_renderer.py|5|from PySide6.QtCore import QRectF, Qt, QPointF
+nderers\alternating_renderer.py|7|from models import ComponentModel
+nderers\alternating_renderer.py|8|from .component_renderer import ComponentRenderer
+nderers\button_renderer.py|9|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QFont
+nderers\button_renderer.py|10|from PySide6.QtCore import QRectF, Qt
+nderers\button_renderer.py|12|from models import ComponentModel
+nderers\button_renderer.py|13|from .component_renderer import ComponentRenderer
+nderers\checkbox_renderer.py|7|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QFont
+nderers\checkbox_renderer.py|8|from PySide6.QtCore import QRectF, Qt, QPointF
+nderers\checkbox_renderer.py|10|from models import ComponentModel
+nderers\checkbox_renderer.py|11|from .component_renderer import ComponentRenderer
+nderers\combobox_renderer.py|7|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QFont
+nderers\combobox_renderer.py|8|from PySide6.QtCore import QRectF, Qt, QPointF
+nderers\combobox_renderer.py|10|from models import ComponentModel
+nderers\combobox_renderer.py|11|from .component_renderer import ComponentRenderer
+nderers\component_renderer.py|12|from abc import ABC, abstractmethod
+nderers\component_renderer.py|13|from typing import Optional
+nderers\component_renderer.py|14|from PySide6.QtGui import QPainter, QFont, QFontMetrics, QBrush, QColor, QPen
+nderers\component_renderer.py|15|from PySide6.QtCore import QRectF, Qt, QPointF
+nderers\component_renderer.py|17|from models import ComponentModel
+nderers\container_renderer.py|7|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QFont, QLinearGradient
+nderers\container_renderer.py|8|from PySide6.QtCore import QRectF, Qt
+nderers\container_renderer.py|10|from models import ComponentModel
+nderers\container_renderer.py|11|from .component_renderer import ComponentRenderer
+nderers\hidden_button_renderer.py|5|from PySide6.QtGui import QPainter, QBrush, QColor, QPen
+nderers\hidden_button_renderer.py|6|from PySide6.QtCore import QRectF, Qt
+nderers\hidden_button_renderer.py|8|from models import ComponentModel
+nderers\hidden_button_renderer.py|9|from .component_renderer import ComponentRenderer
+nderers\hidden_button_renderer.py|45|from PySide6.QtGui import QFont
+nderers\image_button_renderer.py|5|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QPixmap
+nderers\image_button_renderer.py|6|from PySide6.QtCore import QRectF, Qt
+nderers\image_button_renderer.py|8|from models import ComponentModel
+nderers\image_button_renderer.py|9|from .component_renderer import ComponentRenderer
+nderers\image_button_renderer.py|74|from PySide6.QtGui import QFont
+nderers\image_carousel_renderer.py|5|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QPixmap, QFont, QPainterPath
+nderers\image_carousel_renderer.py|6|from PySide6.QtCore import QRectF, Qt
+nderers\image_carousel_renderer.py|8|from models import ComponentModel
+nderers\image_carousel_renderer.py|9|from .component_renderer import ComponentRenderer
+nderers\image_renderer.py|7|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QPixmap, QFont
+nderers\image_renderer.py|8|from PySide6.QtCore import QRectF, Qt
+nderers\image_renderer.py|10|from models import ComponentModel, ImageModel
+nderers\image_renderer.py|11|from .component_renderer import ComponentRenderer
+nderers\input_renderer.py|7|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QFont
+nderers\input_renderer.py|8|from PySide6.QtCore import QRectF, Qt
+nderers\input_renderer.py|10|from models import ComponentModel
+nderers\input_renderer.py|11|from .component_renderer import ComponentRenderer
+nderers\label_renderer.py|11|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QFont, QTextOption, QFontMetrics
+nderers\label_renderer.py|12|from PySide6.QtCore import QRectF, Qt
+nderers\label_renderer.py|14|from models import ComponentModel, LabelModel
+nderers\label_renderer.py|15|from .component_renderer import ComponentRenderer
+nderers\lottery_renderer.py|4|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QPixmap, QFont, QPainterPath
+nderers\lottery_renderer.py|5|from PySide6.QtCore import QRectF, Qt
+nderers\lottery_renderer.py|7|from models import ComponentModel
+nderers\lottery_renderer.py|8|from .component_renderer import ComponentRenderer
+nderers\lottery_renderer.py|106|from PySide6.QtCore import QPointF
+nderers\progressbar_renderer.py|7|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QFont
+nderers\progressbar_renderer.py|8|from PySide6.QtCore import QRectF, Qt
+nderers\progressbar_renderer.py|10|from models import ComponentModel
+nderers\progressbar_renderer.py|11|from .component_renderer import ComponentRenderer
+nderers\renderer_factory.py|4|from typing import Dict, Type, Optional
+nderers\renderer_factory.py|6|from models import ComponentModel
+nderers\renderer_factory.py|7|from .component_renderer import ComponentRenderer
+nderers\renderer_factory.py|8|from .label_renderer import LabelRenderer
+nderers\renderer_factory.py|36|from models.component_registry import ComponentRegistry
+nderers\renderer_factory.py|69|from models.component_registry import ComponentRegistry
+nderers\renderer_factory.py|95|from models.component_registry import ComponentRegistry
+nderers\renderer_factory.py|107|from models.component_registry import ComponentRegistry
+nderers\renderer_factory.py|122|from models.component_registry import ComponentRegistry
+nderers\video_renderer.py|7|from PySide6.QtGui import QPainter, QBrush, QColor, QPen, QPixmap, QFont
+nderers\video_renderer.py|8|from PySide6.QtCore import QRectF, Qt
+nderers\video_renderer.py|10|from models import ComponentModel, VideoModel
+nderers\video_renderer.py|11|from .component_renderer import ComponentRenderer
+nderers\video_renderer.py|122|from PySide6.QtGui import QPolygonF
+nderers\video_renderer.py|123|from PySide6.QtCore import QPointF
+nderers\__init__.py|4|from .component_renderer import ComponentRenderer
+nderers\__init__.py|5|from .button_renderer import ButtonRenderer
+nderers\__init__.py|6|from .label_renderer import LabelRenderer
+nderers\__init__.py|7|from .input_renderer import InputRenderer
+nderers\__init__.py|8|from .container_renderer import ContainerRenderer
+nderers\__init__.py|9|from .checkbox_renderer import CheckBoxRenderer
+nderers\__init__.py|10|from .combobox_renderer import ComboBoxRenderer
+nderers\__init__.py|11|from .progressbar_renderer import ProgressBarRenderer
+nderers\__init__.py|12|from .hidden_button_renderer import HiddenButtonRenderer
+nderers\__init__.py|13|from .image_button_renderer import ImageButtonRenderer
+nderers\__init__.py|14|from .image_carousel_renderer import ImageCarouselRenderer
+nderers\__init__.py|15|from .renderer_factory import RendererFactory
+ntime\action_executor.py|14|from typing import Dict, Any, Optional, TYPE_CHECKING
+ntime\action_executor.py|15|from PySide6.QtCore import QObject, Signal
+ntime\action_executor.py|18|from models import ProjectModel, ComponentModel
+ntime\action_executor.py|60|from models.base import ActionType
+ntime\action_executor.py|126|from PySide6.QtWidgets import QMessageBox
+ntime\action_executor.py|199|from models.components import ImageCarouselModel
+ntime\action_executor.py|216|from models.components import ImageCarouselModel
+ntime\action_executor.py|233|from models.components import ImageCarouselModel
+ntime\action_executor.py|250|from models.components import ImageCarouselModel
+ntime\action_executor.py|270|from models.components import ImageCarouselModel
+ntime\action_executor.py|290|from models.components import LotteryModel, ImageCarouselModel, LabelModel
+ntime\action_executor.py|321|from models.components import AlternatingModel
+ntime\action_executor.py|341|from models.components import AlternatingModel
+ntime\action_executor.py|361|from models.base import ComponentModel
+ntime\action_executor.py|379|from models.base import ComponentModel
+ntime\action_executor.py|396|from models.base import ComponentModel
+ntime\linkage_manager.py|15|from typing import Dict, Any, List, Optional, TYPE_CHECKING
+ntime\linkage_manager.py|16|from PySide6.QtCore import QObject, Signal
+ntime\linkage_manager.py|19|from models import ProjectModel
+ntime\linkage_manager.py|20|from runtime.action_executor import ActionExecutor
+ntime\linkage_manager.py|27|from dev_mode.debug_logger import DebugLogger
+ntime\runner.py|13|import sys
+ntime\runner.py|14|import os
+ntime\runner.py|15|import traceback
+ntime\runner.py|16|from datetime import datetime
+ntime\runner.py|17|from typing import Dict, Any, Optional
+ntime\runner.py|18|from PySide6.QtWidgets import QMainWindow, QWidget, QApplication
+ntime\runner.py|19|from PySide6.QtCore import Qt
+ntime\runner.py|20|from PySide6.QtCore import Qt, QTimer
+ntime\runner.py|22|from utils.component_factory import create_component_widget
+ntime\runner.py|23|from utils.settings import app_settings
+ntime\runner.py|24|from .action_executor import ActionExecutor
+ntime\runner.py|85|from dev_mode.debug_logger import DebugLogger
+ntime\runner.py|133|from models.registry_init import register_all_components
+ntime\runner.py|158|from models import ProjectModel
+ntime\runner.py|168|from .linkage_manager import LinkageManager
+ntime\runner.py|197|from dev_mode.debug_logger import DebugLogger
+ntime\runner.py|205|from PySide6.QtWidgets import QMessageBox
+ntime\runner.py|218|from .runtime_console import RuntimeConsole
+ntime\runner.py|239|from dev_mode.debug_logger import DebugLogger
+ntime\runner.py|253|from .runtime_console import ExceptionInterceptor
+ntime\runner.py|321|from PySide6.QtWidgets import QFrame
+ntime\runner.py|480|from models.component_registry import ComponentRegistry
+ntime\runner.py|621|from dev_mode.debug_logger import DebugLogger
+ntime\runner.py|788|from templates import get_test_template
+ntime\runtime_console.py|4|import sys
+ntime\runtime_console.py|5|import traceback
+ntime\runtime_console.py|6|from PySide6.QtWidgets import (
+ntime\runtime_console.py|10|from PySide6.QtCore import Qt, Slot
+ntime\runtime_console.py|11|from PySide6.QtGui import QFont, QColor, QTextCharFormat
+ntime\runtime_console.py|13|from dev_mode.debug_logger import DebugLogger, LogLevel
+ntime\runtime_console.py|95|import datetime
+ntime\secure_executor.py|10|import os
+ntime\secure_executor.py|11|import re
+ntime\secure_executor.py|12|import shlex
+ntime\secure_executor.py|13|import shutil
+ntime\secure_executor.py|14|import logging
+ntime\secure_executor.py|15|import subprocess
+ntime\secure_executor.py|16|import platform
+ntime\secure_executor.py|17|from typing import Dict, Any, List, Optional, Union, Set
+ntime\secure_executor.py|18|from pathlib import Path
+ntime\secure_executor.py|19|from dataclasses import dataclass
+ntime\secure_executor.py|20|from enum import Enum
+ntime\secure_executor.py|392|import resource
+ntime\__init__.py|3|from .action_executor import ActionExecutor
+ntime\__init__.py|4|from .runner import Runner
+ripts\devtools.py|16|import sys
+ripts\devtools.py|17|import os
+ripts\devtools.py|18|import argparse
+ripts\devtools.py|19|import cmd
+ripts\devtools.py|20|import platform
+ripts\devtools.py|21|from typing import Optional
+ripts\devtools.py|28|from PySide6.QtWidgets import QApplication
+ripts\devtools.py|29|from dev_mode import DevModeManager
+ripts\devtools.py|44|from dev_mode import TestRunner, TestCase
+ripts\devtools.py|122|from PySide6.QtCore import PYQT_VERSION_STR
+ripts\devtools.py|141|from dev_mode import TestCase
+ripts\devtools.py|168|from dev_mode import DevModeManager
+ripts\devtools.py|192|from dev_mode import DebugLogger
+ripts\devtools.py|201|from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout
+ripts\devtools.py|202|from models import ButtonModel, LabelModel, InputModel, ContainerModel, ProgressBarModel
+ripts\devtools.py|214|from PySide6.QtWidgets import QPushButton
+ripts\devtools.py|221|from PySide6.QtWidgets import QLabel
+ripts\devtools.py|228|from PySide6.QtWidgets import QLineEdit
+ripts\devtools.py|235|from PySide6.QtWidgets import QGroupBox
+ripts\devtools.py|241|from PySide6.QtWidgets import QProgressBar
+ripts\devtools.py|272|from dev_mode import DebugLogger
+ripts\devtools.py|274|from PySide6.QtWidgets import QMainWindow, QMessageBox
+ripts\devtools.py|275|from models import ProjectModel
+ripts\devtools.py|276|from views import MainWindow
+ripts\devtools.py|277|from controllers import ProjectController
+ripts\devtools.py|315|from dev_mode import DebugLogger
+ripts\devtools.py|317|from models import ProjectModel
+ripts\devtools.py|318|from runtime import ProjectRunner
+ripts\fix_files.py|1|import os
+ripts\generate_icons.py|6|import os
+ripts\generate_icons.py|7|import sys
+ripts\generate_icons.py|11|from utils.icon_manager import IconManager
+rvices\auto_save_service.py|11|import os
+rvices\auto_save_service.py|12|from datetime import datetime
+rvices\auto_save_service.py|13|from typing import Optional, Callable
+rvices\auto_save_service.py|15|from models import ProjectModel
+rvices\auto_save_service.py|16|from utils.temp_file_manager import TempFileManager
+rvices\auto_save_service.py|17|from utils.session_logger import SessionLogger
+rvices\initialization.py|21|import sys
+rvices\initialization.py|22|import os
+rvices\initialization.py|23|from typing import Optional, Callable
+rvices\initialization.py|25|from PySide6.QtWidgets import QApplication
+rvices\initialization.py|26|from PySide6.QtGui import QFont
+rvices\initialization.py|28|from utils.session_logger import SessionLogger
+rvices\initialization.py|29|from utils.settings import app_settings
+rvices\initialization.py|98|from dev_mode import DevModeManager
+rvices\initialization.py|123|from models.registry_init import register_all_components
+rvices\initialization.py|133|from renderers.renderer_factory import RendererFactory
+rvices\initialization.py|157|import importlib
+rvices\initialization.py|158|import os
+rvices\initialization.py|188|from models.component_registry import ComponentRegistry
+rvices\initialization.py|189|import logging
+rvices\initialization.py|250|from views.tk_splash import show_splash
+rvices\initialization.py|255|from views.tk_splash import update_splash
+rvices\initialization.py|264|from views.tk_splash import close_splash
+rvices\__init__.py|10|from .initialization import AppInitializer
+rvices\__init__.py|11|from .auto_save_service import AutoSaveService
+rvices\layout\commands.py|3|from typing import Dict, Tuple
+rvices\layout\data.py|3|from dataclasses import dataclass, field
+rvices\layout\data.py|4|from typing import Dict, List, Tuple, Optional
+rvices\layout\data.py|5|from PySide6.QtCore import QRectF
+rvices\layout\layout_engine.py|3|import logging
+rvices\layout\layout_engine.py|4|from typing import Dict, List, Tuple, Optional
+rvices\layout\layout_engine.py|6|from .data import LayoutResult, OverlapInfo
+rvices\layout\layout_engine.py|7|from .layout_strategy import STRATEGY_MAP
+rvices\layout\layout_engine.py|8|from .overlap_detector import OverlapDetector
+rvices\layout\layout_engine.py|9|from .overlap_avoider import OverlapAvoider
+rvices\layout\layout_engine.py|10|from .commands import RelayoutCommand
+rvices\layout\layout_strategy.py|4|from abc import ABC, abstractmethod
+rvices\layout\layout_strategy.py|5|from typing import Dict, List, Tuple
+rvices\layout\layout_strategy.py|6|import logging
+rvices\layout\overlap_avoider.py|3|from typing import Dict, Tuple, List
+rvices\layout\overlap_avoider.py|4|import logging
+rvices\layout\overlap_avoider.py|6|from .data import OverlapInfo
+rvices\layout\overlap_detector.py|3|from typing import List, Tuple
+rvices\layout\overlap_detector.py|4|from PySide6.QtCore import QRectF
+rvices\layout\overlap_detector.py|5|from .data import OverlapInfo
+rvices\layout\overlap_visualizer.py|3|from typing import Set, Dict
+rvices\layout\overlap_visualizer.py|4|from PySide6.QtGui import QPen, QColor
+rvices\layout\overlap_visualizer.py|5|from PySide6.QtCore import Qt
+rvices\layout\overlap_visualizer.py|32|from PySide6.QtWidgets import QGraphicsRectItem
+rvices\layout\__init__.py|4|from .layout_engine import LayoutEngine
+rvices\layout\__init__.py|5|from .overlap_detector import OverlapDetector
+rvices\layout\__init__.py|6|from .overlap_avoider import OverlapAvoider
+rvices\layout\__init__.py|7|from .overlap_visualizer import OverlapVisualizer
+rvices\layout\__init__.py|8|from .data import LayoutResult, OverlapInfo
+rvices\layout\__init__.py|9|from .layout_strategy import (
+yles\component_styles.py|9|from styles import ComponentStyles
+yles\component_styles.py|19|from .theme import Colors, Fonts, Theme
+yles\component_styles.py|245|from PySide6.QtGui import QFont
+yles\panel_styles.py|7|from styles import PropertyPanelStyles
+yles\panel_styles.py|16|from .theme import Colors, Fonts, Theme
+yles\__init__.py|9|from styles import PropertyPanelStyles, ComponentStyles
+yles\__init__.py|18|from .panel_styles import PropertyPanelStyles, ComponentPanelStyles
+yles\__init__.py|19|from .component_styles import ComponentStyles, StyleHelper
+yles\__init__.py|20|from .theme import Theme, Colors, Fonts
+mplates\test_template.py|4|from typing import Dict, Any
+mplates\__init__.py|4|from .test_template import get_test_template
+sts\auto_test.py|14|import os
+sts\auto_test.py|15|import traceback
+sts\auto_test.py|16|from datetime import datetime
+sts\auto_test.py|17|from typing import Optional, List, Callable
+sts\auto_test.py|18|from pathlib import Path
+sts\auto_test.py|20|from PySide6.QtCore import QObject, Signal, QTimer
+sts\run_case.py|6|import sys
+sts\run_case.py|7|import os
+sts\run_case.py|8|from PySide6.QtWidgets import QApplication
+sts\run_case.py|12|from models import ProjectModel
+sts\run_case.py|13|from runtime.runner import Runner
+sts\run_case.py|14|from tests.test_template import get_test_template
+sts\run_tests.py|7|import sys
+sts\run_tests.py|8|import os
+sts\run_tests.py|9|import unittest
+sts\run_tests.py|10|from datetime import datetime
+sts\run_tests.py|11|from pathlib import Path
+sts\run_tests.py|15|from tests import TestLogger
+sts\run_tests.py|16|from tests.test_flow import TestFlow
+sts\run_tests.py|17|from tests.test_project import TestProject
+sts\run_tests.py|18|from tests.test_state_machine import TestStateMachineView
+sts\test_frontend_usability.py|8|import sys
+sts\test_frontend_usability.py|9|import os
+sts\test_frontend_usability.py|10|import json
+sts\test_frontend_usability.py|11|import tempfile
+sts\test_frontend_usability.py|15|from PySide6.QtWidgets import QApplication
+sts\test_frontend_usability.py|18|from models import ProjectModel
+sts\test_frontend_usability.py|19|from models.components import (
+sts\test_frontend_usability.py|25|from models.component_registry import ComponentRegistry
+sts\test_frontend_usability.py|26|from utils.component_factory import ComponentFactory
+sts\test_frontend_usability.py|27|from views.property_panel import PropertyPanel, COMPONENT_INFO
+sts\test_icons.py|4|import sys
+sts\test_icons.py|5|import os
+sts\test_icons.py|9|from PySide6.QtWidgets import (
+sts\test_icons.py|13|from PySide6.QtCore import Qt, QSize
+sts\test_icons.py|15|from utils.icon_manager import IconManager
+sts\test_lottery_linkage.py|1|import json
+sts\test_lottery_linkage.py|2|import sys
+sts\test_lottery_linkage.py|3|import os
+sts\test_lottery_linkage.py|7|from PySide6.QtWidgets import QApplication
+sts\test_lottery_linkage.py|10|from models import ProjectModel
+sts\test_lottery_linkage.py|11|from runtime.action_executor import ActionExecutor
+sts\test_lottery_linkage.py|12|from runtime.linkage_manager import LinkageManager
+sts\test_lottery_linkage.py|13|from utils.component_factory import ComponentFactory
+sts\test_lottery_linkage.py|23|from utils.py_project_format import python_code_to_dict
+sts\test_lottery_linkage.py|83|from models.components import ImageCarouselModel, HiddenButtonModel, ImageButtonModel
+sts\test_output.py|9|import sys
+sts\test_output.py|10|import json
+sts\test_output.py|11|from typing import Optional, Dict, Any
+sts\test_output.py|12|from PySide6.QtWidgets import (
+sts\test_output.py|17|from PySide6.QtCore import Qt, QTimer
+sts\test_output.py|18|from PySide6.QtGui import QFont, QColor, QPalette
+sts\test_progressbar.py|3|import sys
+sts\test_progressbar.py|4|from PySide6.QtWidgets import QApplication, QMainWindow, QProgressBar, QVBoxLayout, QWidget, QPushButton
+sts\test_refactoring.py|9|import sys
+sts\test_refactoring.py|10|import os
+sts\test_refactoring.py|11|import traceback
+sts\test_refactoring.py|12|from datetime import datetime
+sts\test_refactoring.py|82|from services import AppInitializer
+sts\test_refactoring.py|87|from services import AutoSaveService
+sts\test_refactoring.py|92|from services import AppInitializer
+sts\test_refactoring.py|99|from services import AutoSaveService
+sts\test_refactoring.py|116|from utils.temp_file_manager import TempFileManager
+sts\test_refactoring.py|121|from utils.temp_file_manager import TempFileManager
+sts\test_refactoring.py|128|from utils.temp_file_manager import TempFileManager
+sts\test_refactoring.py|145|from controllers import ProjectController
+sts\test_refactoring.py|150|from controllers import CanvasController
+sts\test_refactoring.py|155|from controllers import CanvasController
+sts\test_refactoring.py|171|from renderers import ComponentRenderer
+sts\test_refactoring.py|172|from renderers import ButtonRenderer, LabelRenderer, InputRenderer
+sts\test_refactoring.py|173|from renderers import ContainerRenderer, CheckBoxRenderer
+sts\test_refactoring.py|174|from renderers import ComboBoxRenderer, ProgressBarRenderer
+sts\test_refactoring.py|175|from renderers import RendererFactory
+sts\test_refactoring.py|179|from renderers import RendererFactory, ButtonRenderer, LabelRenderer
+sts\test_refactoring.py|191|from renderers import RendererFactory
+sts\test_refactoring.py|201|from renderers import RendererFactory, LabelRenderer
+sts\test_refactoring.py|222|from views.property_editors import PropertyEditorRegistry
+sts\test_refactoring.py|223|from views.property_editors import BasePropertyEditor
+sts\test_refactoring.py|227|from views.property_editors import PropertyEditorRegistry, BasePropertyEditor
+sts\test_refactoring.py|245|from views.property_editors import PropertyEditorRegistry, BasePropertyEditor
+sts\test_refactoring.py|271|import main
+sts\test_refactoring.py|277|import main
+sts\test_tech_components.py|4|import sys
+sts\test_tech_components.py|5|import os
+sts\test_tech_components.py|9|from models import TechComponentManager, create_component, GroupNodeModel
+sts\test_template.py|18|import json
+sts\test_template.py|19|from pathlib import Path
+sts\test_template.py|20|from typing import Dict, Any, Optional
+sts\test_template.py|21|from datetime import datetime
+sts\test_template.py|22|import platform
+sts\__init__.py|27|import unittest
+sts\__init__.py|28|import sys
+sts\__init__.py|29|import os
+sts\__init__.py|30|import logging
+sts\__init__.py|31|import traceback
+sts\__init__.py|32|from datetime import datetime
+sts\__init__.py|33|from typing import Optional, List, Callable
+sts\__init__.py|34|from pathlib import Path
+sts\__init__.py|36|from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
+sts\__init__.py|37|from PySide6.QtCore import Qt, QTimer, Signal, QObject
+sts\__init__.py|38|from PySide6.QtTest import QTest
+sts\__init__.py|261|from models import ProjectModel
+sts\__init__.py|279|from models import ProjectModel
+sts\__init__.py|303|from models import ProjectModel
+sts\__init__.py|331|from views.state_machine_view import StateMachineDialog
+sts\__init__.py|350|from views.state_machine_view import (
+sts\__init__.py|384|from views.state_machine_view import (
+sts\__init__.py|433|from models import ProjectModel
+sts\__init__.py|434|from views.state_machine_view import StateMachineDialog
+sts\__init__.py|441|from models import WindowModel
+sts\__init__.py|471|from models import ProjectModel
+sts\__init__.py|472|from views.state_machine_view import StateMachineDialog
+\custom_titlebar.py|6|import logging
+\custom_titlebar.py|7|from enum import Enum, auto
+\custom_titlebar.py|8|from typing import Optional, Callable
+\custom_titlebar.py|10|from PySide6.QtCore import Qt, Signal, QPoint, QSize
+\custom_titlebar.py|11|from PySide6.QtWidgets import (
+\custom_titlebar.py|15|from PySide6.QtGui import QColor, QMouseEvent, QPaintEvent, QPainter, QBrush, QPen, QFont
+\custom_titlebar.py|487|from PySide6.QtWidgets import QRadioButton, QButtonGroup, QGroupBox
+ils\component_factory.py|4|from typing import Dict, Any, Optional
+ils\component_factory.py|5|from PySide6.QtWidgets import (
+ils\component_factory.py|10|from PySide6.QtCore import Qt
+ils\component_factory.py|11|from PySide6.QtGui import QFont, QFontMetrics
+ils\component_factory.py|13|from models.base import ComponentModel, StyleConfig
+ils\component_factory.py|14|from models.components import (
+ils\component_factory.py|204|from models.component_registry import ComponentRegistry
+ils\component_factory.py|205|import logging
+ils\component_factory.py|377|from PySide6.QtWidgets import QFrame
+ils\component_factory.py|435|from PySide6.QtGui import QIcon, QPixmap
+ils\component_factory.py|458|from PySide6.QtWidgets import QLabel, QVBoxLayout
+ils\component_factory.py|459|from PySide6.QtGui import QPixmap
+ils\component_factory.py|513|from PySide6.QtWidgets import QLabel
+ils\component_factory.py|514|from PySide6.QtGui import QPixmap
+ils\component_factory.py|544|from PySide6.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QPushButton
+ils\component_factory.py|545|from PySide6.QtMultimedia import QMediaPlayer
+ils\component_factory.py|546|from PySide6.QtMultimediaWidgets import QVideoWidget
+ils\component_factory.py|568|from PySide6.QtCore import QUrl
+ils\component_factory.py|601|from PySide6.QtWidgets import QPushButton
+ils\component_factory.py|631|from PySide6.QtWidgets import QLabel, QVBoxLayout
+ils\component_factory.py|632|from PySide6.QtCore import Qt
+ils\component_factory.py|663|from PySide6.QtGui import QPixmap
+ils\component_factory.py|684|from PySide6.QtGui import QPixmap
+ils\converter.py|8|import json
+ils\converter.py|9|import os
+ils\converter.py|10|import re
+ils\converter.py|11|from typing import Dict, Any, Optional, List
+ils\converter.py|12|from datetime import datetime
+ils\converter.py|481|import sys
+ils\converter_secure_patch.py|7|from typing import Dict, Any, List
+ils\converter_secure_patch.py|8|from utils.safe_code_generator import SafeCodeGenerator
+ils\converter_secure_patch.py|122|from utils.converter_secure_patch import patch_converter_converter
+ils\converter_secure_patch.py|125|import utils.converter as converter
+ils\crash_log.py|6|import sys
+ils\crash_log.py|7|import os
+ils\crash_log.py|8|import traceback
+ils\crash_log.py|9|import datetime
+ils\crash_log.py|10|from typing import Optional
+ils\file_association.py|6|import os
+ils\file_association.py|7|import sys
+ils\file_association.py|8|import platform
+ils\file_association.py|41|import winreg
+ils\file_association.py|91|import winreg
+ils\file_association.py|126|import winreg
+ils\font_utils.py|6|import os
+ils\font_utils.py|7|import platform
+ils\font_utils.py|8|from typing import List, Optional
+ils\font_utils.py|28|from PySide6.QtWidgets import QApplication
+ils\font_utils.py|29|from PySide6.QtGui import QFontDatabase
+ils\icon_manager.py|15|from utils.icon_manager import IconManager
+ils\icon_manager.py|26|import os
+ils\icon_manager.py|27|from typing import Dict, Optional
+ils\icon_manager.py|28|from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QFontMetrics
+ils\icon_manager.py|29|from PySide6.QtCore import Qt, QSize, QRect, QByteArray
+ils\icon_manager.py|30|from PySide6.QtSvg import QSvgRenderer
+ils\indexed_communication.py|10|from typing import Dict, List, Tuple, Any, Optional, Callable, Set
+ils\indexed_communication.py|11|from collections import defaultdict
+ils\indexed_communication.py|12|from PySide6.QtCore import QObject, Signal
+ils\indexed_communication.py|13|import weakref
+ils\indexed_communication.py|135|import uuid
+ils\py_project_format.py|4|import json
+ils\py_project_format.py|5|import re
+ils\py_project_format.py|6|from typing import Dict, Any
+ils\safe_code_generator.py|12|import ast
+ils\safe_code_generator.py|13|import json
+ils\safe_code_generator.py|14|from typing import Any, Dict, List, Union
+ils\safe_expression.py|28|import ast
+ils\safe_expression.py|29|import operator
+ils\safe_expression.py|30|from typing import Any, Dict, Callable, Set, Optional
+ils\safe_expression.py|31|from dataclasses import dataclass
+ils\safe_expression.py|32|from enum import Enum, auto
+ils\safe_expression.py|225|import re
+ils\session_logger.py|7|from datetime import datetime
+ils\session_logger.py|8|from typing import Optional, List
+ils\session_logger.py|9|import os
+ils\session_logger.py|10|import sys
+ils\settings.py|6|import json
+ils\settings.py|7|import os
+ils\settings.py|8|from pathlib import Path
+ils\settings.py|9|from typing import Any
+ils\signal_manager.py|12|import weakref
+ils\signal_manager.py|13|from typing import Optional, Callable, Any, List, Dict, Set
+ils\signal_manager.py|14|from PySide6.QtCore import QObject, Signal
+ils\signal_manager.py|15|from PySide6.QtWidgets import QWidget
+ils\signal_manager.py|258|import time
+ils\signal_manager.py|269|from PySide6.QtCore import QTimer
+ils\signal_manager.py|279|import time
+ils\temp_file_manager.py|12|import os
+ils\temp_file_manager.py|13|import json
+ils\temp_file_manager.py|14|import tempfile
+ils\temp_file_manager.py|15|import random
+ils\temp_file_manager.py|16|import string
+ils\temp_file_manager.py|17|from datetime import datetime
+ils\temp_file_manager.py|18|from typing import List, Dict, Any, Optional
+ils\text_size_calculator.py|5|from typing import Tuple, Optional
+ils\text_size_calculator.py|6|from PySide6.QtWidgets import QApplication
+ils\text_size_calculator.py|7|from PySide6.QtGui import QFont, QFontMetrics
+ils\text_size_calculator.py|8|from PySide6.QtCore import QRect
+ils\undo_manager.py|7|from typing import List, Dict, Any, Optional, Callable
+ils\undo_manager.py|8|from PySide6.QtCore import QObject, Signal
+ils\undo_manager.py|38|from utils.settings import app_settings
+ils\undo_manager.py|125|import traceback
+ils\__init__.py|6|from .undo_manager import UndoManager
+ils\__init__.py|7|from .settings import app_settings
+ils\__init__.py|8|from .crash_log import setup_crash_handler, get_crash_log_dir, get_recent_crash_logs
+ils\__init__.py|9|from .font_utils import get_available_fonts, get_default_font, is_font_available
+ils\__init__.py|10|from .converter import ProjectConverter, convert_itexe_to_py, convert_py_to_itexe
+ils\__init__.py|11|from .safe_code_generator import (
+ils\__init__.py|18|from .signal_manager import (
+ews\blockly_editor.py|6|from typing import Optional, Dict, Any
+ews\blockly_editor.py|7|from PySide6.QtWidgets import (
+ews\blockly_editor.py|11|from PySide6.QtCore import Qt, Signal
+ews\blockly_editor.py|12|from PySide6.QtGui import QFont
+ews\canvas.py|16|from typing import Optional
+ews\canvas.py|17|from PySide6.QtWidgets import (
+ews\canvas.py|21|from PySide6.QtCore import Qt, QRectF, QPointF, Signal
+ews\canvas.py|22|from PySide6.QtGui import QBrush, QColor, QPen, QFont, QPainter
+ews\canvas.py|24|from models import ComponentModel
+ews\canvas.py|25|from utils.settings import app_settings
+ews\canvas.py|112|from PySide6.QtGui import QPainterPath
+ews\canvas.py|406|from PySide6.QtGui import QFontMetrics
+ews\canvas.py|407|from PySide6.QtCore import QTimer
+ews\canvas.py|478|from PySide6.QtGui import QPixmap
+ews\canvas.py|543|from PySide6.QtGui import QPixmap
+ews\canvas.py|1351|from models import create_component
+ews\component_panel.py|13|from typing import Dict, List, Optional
+ews\component_panel.py|14|from PySide6.QtWidgets import (
+ews\component_panel.py|18|from PySide6.QtCore import Qt, Signal, QSize
+ews\component_panel.py|19|from PySide6.QtGui import QFont, QIcon
+ews\component_panel.py|21|from utils.icon_manager import IconManager
+ews\component_tree.py|7|from typing import Optional, List
+ews\component_tree.py|8|from PySide6.QtWidgets import (
+ews\component_tree.py|12|from PySide6.QtCore import Qt, Signal, QModelIndex
+ews\component_tree.py|13|from PySide6.QtGui import QStandardItemModel, QStandardItem
+ews\component_tree.py|15|from models import ProjectModel, ComponentModel
+ews\flow_preview.py|6|from typing import Optional, Dict, Any, List
+ews\flow_preview.py|7|from PySide6.QtWidgets import (
+ews\flow_preview.py|11|from PySide6.QtCore import Qt, QRectF, QPointF, Signal
+ews\flow_preview.py|12|from PySide6.QtGui import QBrush, QColor, QPen, QFont, QPainter
+ews\logic_tree.py|11|from enum import Enum
+ews\logic_tree.py|12|from typing import Optional
+ews\logic_tree.py|13|from PySide6.QtWidgets import (
+ews\logic_tree.py|18|from PySide6.QtCore import Qt, Signal
+ews\logic_tree.py|19|from PySide6.QtGui import QAction, QIcon
+ews\logic_tree.py|21|from models import (
+ews\logic_tree.py|25|from models.components import ProgressBarModel
+ews\logic_tree.py|725|from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel
+ews\main_window.py|6|from PySide6.QtWidgets import (
+ews\main_window.py|12|from PySide6.QtCore import Qt, Signal
+ews\main_window.py|13|from PySide6.QtGui import QAction, QKeySequence, QFont
+ews\main_window.py|15|from .canvas import DesignerView
+ews\main_window.py|16|from .component_tree import ComponentTreeView
+ews\main_window.py|17|from .property_panel import PropertyPanel
+ews\main_window.py|121|from views.logic_tree import LogicTreeView
+ews\main_window.py|176|from .component_panel import ComponentPanel
+ews\main_window.py|200|from PySide6.QtWidgets import QTabWidget, QSizePolicy
+ews\main_window.py|214|from .signal_manager import SignalManagerPanel
+ews\main_window.py|287|from views.state_machine_view import StateMachineDialog
+ews\main_window.py|600|from PySide6.QtWidgets import QToolButton, QMenu
+ews\main_window.py|825|from .flow_preview import FlowPreviewWidget
+ews\main_window.py|844|from .preferences_dialog import PreferencesDialog
+ews\main_window.py|890|from utils.file_association import (
+ews\main_window.py|963|from PySide6.QtCore import QTimer
+ews\preferences_dialog.py|6|from PySide6.QtWidgets import (
+ews\preferences_dialog.py|11|from PySide6.QtCore import Qt, Signal
+ews\preferences_dialog.py|13|from utils.settings import app_settings
+ews\property_panel.py|23|from typing import Optional, Dict
+ews\property_panel.py|24|from PySide6.QtWidgets import (
+ews\property_panel.py|29|from PySide6.QtCore import Qt, Signal
+ews\property_panel.py|30|from PySide6.QtGui import QColor
+ews\property_panel.py|32|from models import (
+ews\property_panel.py|38|from styles import PropertyPanelStyles, Colors
+ews\property_panel.py|238|from PySide6.QtWidgets import QMessageBox
+ews\register_dialog.py|6|from PySide6.QtWidgets import (
+ews\register_dialog.py|10|from PySide6.QtCore import Qt
+ews\register_dialog.py|11|from PySide6.QtGui import QFont
+ews\register_dialog.py|13|from utils.settings import app_settings
+ews\signal_manager.py|27|from typing import Optional, List, Dict, Any
+ews\signal_manager.py|28|from PySide6.QtWidgets import (
+ews\signal_manager.py|33|from PySide6.QtCore import Qt, Signal
+ews\signal_manager.py|34|from PySide6.QtGui import QIcon
+ews\signal_manager.py|36|from models import (
+ews\signal_manager.py|298|from models.variable_system import VariableType
+ews\splash_window.py|8|from PySide6.QtWidgets import (
+ews\splash_window.py|11|from PySide6.QtCore import (
+ews\splash_window.py|15|from PySide6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath
+ews\splash_window.py|214|from PySide6.QtWidgets import QApplication
+ews\splash_window.py|231|from PySide6.QtWidgets import QApplication
+ews\state_machine_view.py|10|from dataclasses import dataclass, field
+ews\state_machine_view.py|11|from typing import Optional, List, Dict, TYPE_CHECKING
+ews\state_machine_view.py|12|from PySide6.QtWidgets import (
+ews\state_machine_view.py|18|from PySide6.QtCore import (
+ews\state_machine_view.py|21|from PySide6.QtGui import (
+ews\state_machine_view.py|27|from models import ProjectModel, WindowModel, ButtonModel
+ews\tk_splash.py|4|import tkinter as tk
+ews\tk_splash.py|5|from tkinter import ttk
+ews\tk_splash.py|6|import sys
+ews\variable_panel.py|4|from typing import Optional
+ews\variable_panel.py|5|from PySide6.QtWidgets import (
+ews\variable_panel.py|10|from PySide6.QtCore import Qt, Signal
+ews\variable_panel.py|12|from models.variable_system import VariableManager, VariableType, get_variable_manager
+ews\welcome_page.py|7|import json
+ews\welcome_page.py|8|import os
+ews\welcome_page.py|9|from datetime import datetime
+ews\welcome_page.py|10|from typing import Dict, Any, List, Optional
+ews\welcome_page.py|11|from PySide6.QtWidgets import (
+ews\welcome_page.py|16|from PySide6.QtCore import Qt, Signal, QTimer
+ews\welcome_page.py|17|from PySide6.QtGui import QFont, QColor, QPalette
+ews\welcome_page.py|212|from utils.settings import app_settings
+ews\welcome_page.py|281|import traceback
+ews\welcome_page.py|282|from datetime import datetime
+ews\welcome_page.py|291|from templates import get_test_template
+ews\welcome_page.py|392|import json
+ews\welcome_page.py|393|from datetime import datetime
+ews\welcome_page.py|461|import json
+ews\welcome_page.py|509|from PySide6.QtWidgets import QMessageBox
+ews\welcome_page.py|709|from PySide6.QtWidgets import QMenu
+ews\welcome_page.py|732|import platform
+ews\welcome_page.py|740|import subprocess
+ews\welcome_page.py|743|import subprocess
+ews\__init__.py|11|from .main_window import MainWindow
+ews\__init__.py|12|from .canvas import DesignerView, DesignerScene, ComponentGraphicsItem
+ews\__init__.py|13|from .property_panel import PropertyPanel
+ews\__init__.py|16|from .property_editors import PropertyEditorRegistry, BasePropertyEditor
+ews\__init__.py|18|from .component_tree import ComponentTreeView
+ews\__init__.py|19|from .logic_tree import LogicTreeView
+ews\__init__.py|20|from .welcome_page import WelcomePage
+ews\__init__.py|21|from .component_panel import ComponentPanel
+ews\__init__.py|22|from .signal_manager import SignalManagerPanel, SignalEditDialog
+ews\__init__.py|23|from .state_machine_view import StateMachineView, StateMachineModel, StateNodeData, TransitionData
+ews\__init__.py|24|from .splash_window import SplashWindow
+ews\__init__.py|25|from .variable_panel import VariablePanel, get_player_name, set_player_name, get_variable, set_variable
+ews\property_editors\alternating_editor.py|4|from PySide6.QtWidgets import (
+ews\property_editors\alternating_editor.py|9|from PySide6.QtCore import Signal
+ews\property_editors\alternating_editor.py|11|from .base_editor import BasePropertyEditor
+ews\property_editors\alternating_editor.py|12|from .registry import register_property_editor
+ews\property_editors\alternating_editor.py|143|from models.base import ActionConfig
+ews\property_editors\base_editor.py|8|from abc import ABC, abstractmethod
+ews\property_editors\base_editor.py|9|from typing import Optional, Callable
+ews\property_editors\base_editor.py|10|from PySide6.QtWidgets import QWidget, QVBoxLayout
+ews\property_editors\base_editor.py|11|from PySide6.QtCore import Signal
+ews\property_editors\base_editor.py|13|from models import ComponentModel
+ews\property_editors\lottery_editor.py|3|from PySide6.QtWidgets import (
+ews\property_editors\lottery_editor.py|8|from PySide6.QtCore import Qt, Signal
+ews\property_editors\lottery_editor.py|10|from .base_editor import BasePropertyEditor
+ews\property_editors\lottery_editor.py|11|from .registry import register_property_editor
+ews\property_editors\lottery_editor.py|157|from models.base import ActionConfig
+ews\property_editors\lottery_editor.py|237|from PySide6.QtWidgets import QInputDialog
+ews\property_editors\registry.py|5|from typing import Dict, Type, Optional, Callable
+ews\property_editors\registry.py|6|from functools import wraps
+ews\property_editors\registry.py|8|from models import ComponentModel
+ews\property_editors\registry.py|9|from .base_editor import BasePropertyEditor
+ews\property_editors\registry.py|23|from models.component_registry import ComponentRegistry
+ews\property_editors\registry.py|32|from models.component_registry import ComponentRegistry
+ews\property_editors\registry.py|38|from models.component_registry import ComponentRegistry
+ews\property_editors\registry.py|53|from models.component_registry import ComponentRegistry
+ews\property_editors\registry.py|59|from models.component_registry import ComponentRegistry
+ews\property_editors\registry.py|65|from models.component_registry import ComponentRegistry
+ews\property_editors\registry.py|74|from models.component_registry import ComponentRegistry
+ews\property_editors\__init__.py|4|from .registry import PropertyEditorRegistry, register_property_editor
+ews\property_editors\__init__.py|5|from .base_editor import BasePropertyEditor

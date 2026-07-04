@@ -1,0 +1,4 @@
+UIDevTool.egg-info/PKG-INFO
+UIDevTool.egg-info/SOURCES.txt
+UIDevTool.egg-info/dependency_links.txt
+UIDevTool.egg-info/top_level.txt
