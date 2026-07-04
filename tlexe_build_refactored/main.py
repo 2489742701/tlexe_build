@@ -147,6 +147,11 @@ def parse_args():
         action='store_true', 
         help='自动测试蓝图功能（打开项目后自动打开状态机视图）'
     )
+    parser.add_argument(
+        '--auto-test-editor', 
+        action='store_true', 
+        help='自动测试编辑器功能（自动遍历并选中所有组件）'
+    )
     return parser.parse_args()
 
 class AppManager:
@@ -223,11 +228,26 @@ class AppManager:
         self._auto_test.test_completed.connect(self._on_auto_test_completed)
         
         QTimer.singleShot(500, self._auto_test.start)
+        
+    def test_editor_auto(self):
+        """自动测试编辑器功能。"""
+        from PySide6.QtCore import QTimer
+        from tests.auto_test import ComponentEditorAutoTest
+        
+        self._auto_test = ComponentEditorAutoTest(self)
+        self._auto_test.test_completed.connect(self._on_auto_test_completed)
+        
+        # Start the test after UI has initialized and project is loaded
+        QTimer.singleShot(1000, self._auto_test.start)
     
     def _on_auto_test_completed(self, passed: bool, message: str):
         """自动化测试完成时的回调。"""
         status = "成功" if passed else "失败"
         self._session_logger.log("INFO", f"自动化测试{status}: {message}")
+        print(f"\n自动化测试结束: {status} - {message}")
+        # Close without prompt
+        self._auto_save_service.on_application_exit = lambda _: True
+        sys.exit(0 if passed else 1)
     
     def _check_unsaved_changes(self) -> bool:
         """检查是否有未保存的修改，如果有则提示用户。
@@ -493,6 +513,9 @@ def main():
         
         if args.test_blueprint:
             manager.test_blueprint_auto()
+            
+        if getattr(args, 'auto_test_editor', False):
+            manager.test_editor_auto()
         
         sys.exit(manager.run())
     except Exception as e:

@@ -82,16 +82,25 @@ def main():
         cmd_run = [sys.executable, main_py, "--run", sample]
         success_rt, out_rt, code_rt, timeout_rt = run_test(cmd_run, timeout=5)
         
+        # Test 3: Interaction Mode (UI Auto Test)
+        # Note: We give this one a bit longer timeout (10s) just in case the UI is slow to iterate through all components.
+        # But if it finishes successfully, it will exit with code 0 on its own.
+        cmd_interaction = [sys.executable, main_py, "--auto-test-editor", sample]
+        success_int, out_int, code_int, timeout_int = run_test(cmd_interaction, timeout=10)
+        
         results.append({
             "name": sample_name,
             "editor": {"success": success_ed, "code": code_ed, "timeout": timeout_ed, "output": out_ed},
-            "runtime": {"success": success_rt, "code": code_rt, "timeout": timeout_rt, "output": out_rt}
+            "runtime": {"success": success_rt, "code": code_rt, "timeout": timeout_rt, "output": out_rt},
+            "interaction": {"success": success_int, "code": code_int, "timeout": timeout_int, "output": out_int}
         })
         
         status_ed = "PASS" if success_ed else "FAIL"
         status_rt = "PASS" if success_rt else "FAIL"
-        print(f"  -> Editor:  {status_ed} (Timeout: {timeout_ed}, ExitCode: {code_ed})")
-        print(f"  -> Runtime: {status_rt} (Timeout: {timeout_rt}, ExitCode: {code_rt})")
+        status_int = "PASS" if success_int else "FAIL"
+        print(f"  -> Editor:       {status_ed} (Timeout: {timeout_ed}, ExitCode: {code_ed})")
+        print(f"  -> Runtime:      {status_rt} (Timeout: {timeout_rt}, ExitCode: {code_rt})")
+        print(f"  -> Interaction:  {status_int} (Timeout: {timeout_int}, ExitCode: {code_int})")
         print()
         
     print("==== Summary ====")
@@ -99,8 +108,9 @@ def main():
     for res in results:
         ed_status = "PASS" if res['editor']['success'] else "FAIL"
         rt_status = "PASS" if res['runtime']['success'] else "FAIL"
-        print(f"{res['name']:<30} Editor: {ed_status:<5} Runtime: {rt_status:<5}")
-        if not res['editor']['success'] or not res['runtime']['success']:
+        int_status = "PASS" if res['interaction']['success'] else "FAIL"
+        print(f"{res['name']:<30} Editor: {ed_status:<5} Runtime: {rt_status:<5} Interaction: {int_status:<5}")
+        if not res['editor']['success'] or not res['runtime']['success'] or not res['interaction']['success']:
             all_passed = False
             
     if not all_passed:
@@ -112,6 +122,9 @@ def main():
             if not res['runtime']['success']:
                 print(f"\n--- {res['name']} (Runtime FAIL) ---")
                 print(res['runtime']['output'])
+            if not res['interaction']['success']:
+                print(f"\n--- {res['name']} (Interaction FAIL) ---")
+                print(res['interaction']['output'])
         sys.exit(1)
     else:
         print("\nAll tests passed successfully!")

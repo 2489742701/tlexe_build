@@ -341,3 +341,71 @@ class BlueprintAutoTest(QObject):
         
         message = "所有测试通过" if passed else "部分测试失败"
         self.test_completed.emit(passed, message)
+
+class ComponentEditorAutoTest(QObject):
+    """组件编辑器全自动交互测试。
+    
+    用于遍历项目中所有的组件，自动选中并渲染其属性面板，
+    验证不会产生崩溃或属性绑定错误。
+    """
+    
+    test_completed = Signal(bool, str)
+    
+    def __init__(self, app_manager, parent=None):
+        super().__init__(parent)
+        self._app_manager = app_manager
+        self._test_manager = AutoTestManager(app_manager._session_logger, parent)
+        self._test_manager.all_completed.connect(self._on_test_completed)
+        self._components_to_test = []
+        self._current_test_idx = 0
+        
+    def start(self):
+        """开始测试。"""
+        self._test_manager.clear_steps()
+        self._test_manager.add_step("准备阶段", self._step_prepare, "收集项目中所有组件")
+        self._test_manager.add_step("交互测试", self._step_interactive_test, "逐一点击组件并渲染编辑器")
+        self._test_manager.start()
+        
+    def _step_prepare(self):
+        if not self._app_manager._project_model:
+            raise RuntimeError("项目未加载")
+        if not self._app_manager._main_window:
+            raise RuntimeError("主窗口未初始化")
+            
+        self._components_to_test = self._app_manager._project_model.get_all_components()
+        self._app_manager._session_logger.log("INFO", f"找到 {len(self._components_to_test)} 个组件待测试")
+        
+    def _step_interactive_test(self):
+        # We need to test them sequentially using a timer to yield to the event loop
+        self._current_test_idx = 0
+        self._test_next_component()
+        
+    def _test_next_component(self):
+        if self._current_test_idx >= len(self._components_to_test):
+            # All done, complete this step
+            self._test_manager.step_completed.emit("交互测试", True, "")
+            return
+            
+        comp = self._components_to_test[self._current_test_idx]
+        self._app_manager._session_logger.log("INFO", f"正在测试组件: {comp.type} (ID: {comp.id})")
+        
+        try:
+            # Simulate clicking the component in the tree/canvas
+            self._app_manager._controller._on_component_selected(comp.id)
+            # Ensure the property panel handles it without exceptions
+        except Exception as e:
+            err_msg = f"组件 {comp.type} ({comp.id}) 测试失败: {str(e)}\n{traceback.format_exc()}"
+            self._app_manager._session_logger.log("ERROR", err_msg)
+            self._test_manager.step_completed.emit("交互测试", False, err_msg)
+            return
+            
+        self._current_test_idx += 1
+        # Schedule next component test with a small delay to allow UI to render
+        QTimer.singleShot(100, self._test_next_component)
+        
+    def _on_test_completed(self):
+        results = self._test_manager.results
+        passed = all(r["passed"] for r in results)
+        message = "全自动交互测试通过" if passed else "全自动交互测试失败"
+        self.test_completed.emit(passed, message)
+
